@@ -111,6 +111,67 @@ Content-Type: application/json
 }
 ```
 
+### Customer Management
+
+#### List Customers
+```http
+GET /api/customers?page=1&limit=10
+Authorization: Bearer <token>
+```
+
+#### Get Customer Details
+```http
+GET /api/customers/{id}
+Authorization: Bearer <token>
+```
+
+#### Get Customer by Phone
+```http
+GET /api/customers/phone/{phone}
+Authorization: Bearer <token>
+```
+
+#### Get Customer by Email
+```http
+GET /api/customers/email/{email}
+Authorization: Bearer <token>
+```
+
+#### Create Customer (Kasir/Admin)
+```http
+POST /api/customers
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "phone": "081234567890",
+  "email": "john.doe@email.com",
+  "address": "Jl. Customer Street No. 123",
+  "id_card_number": "1234567890123456"
+}
+```
+
+#### Update Customer (Kasir/Admin)
+```http
+PUT /api/customers/{id}
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "John Doe Updated",
+  "phone": "081234567891",
+  "email": "john.updated@email.com",
+  "address": "Jl. Updated Street No. 456"
+}
+```
+
+#### Delete Customer (Admin)
+```http
+DELETE /api/customers/{id}
+Authorization: Bearer <token>
+```
+
 ### Vehicle Management
 
 #### List Vehicles
@@ -281,6 +342,7 @@ curl -X GET http://localhost:8080/api/vehicles \
 - [x] JWT Authentication & Authorization
 - [x] Role-based access control
 - [x] Vehicle CRUD operations
+- [x] Customer CRUD operations
 - [x] Database setup with PostgreSQL
 - [x] Clean architecture implementation
 - [x] API validation and error handling
@@ -289,7 +351,7 @@ curl -X GET http://localhost:8080/api/vehicles \
 
 ### 🚧 In Progress
 - [ ] Spare parts management
-- [ ] Transaction management
+- [ ] Transaction management (Purchase & Sales)
 - [ ] Repair system
 - [ ] Dashboard endpoints
 - [ ] Invoice generation

@@ -31,6 +31,7 @@ func main() {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	vehicleRepo := repository.NewVehicleRepository(db)
+	customerRepo := repository.NewCustomerRepository(db)
 	// sparePartRepo := repository.NewSparePartRepository(db) // TODO: Add spare part handlers
 
 	// Initialize JWT middleware
@@ -39,13 +40,15 @@ func main() {
 	// Initialize services
 	authService := service.NewAuthService(userRepo, jwtMiddleware)
 	vehicleService := service.NewVehicleService(vehicleRepo)
+	customerService := service.NewCustomerService(customerRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
 	vehicleHandler := handler.NewVehicleHandler(vehicleService)
+	customerHandler := handler.NewCustomerHandler(customerService)
 
 	// Setup router
-	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler)
+	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, customerHandler)
 
 	// Start server
 	log.Printf("Starting server on port %s", cfg.Server.Port)
@@ -54,7 +57,7 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, customerHandler *handler.CustomerHandler) *gin.Engine {
 	// Set gin mode
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -107,6 +110,18 @@ func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, au
 				vehicles.PUT("/:id", jwtMiddleware.RequireCashierOrAdmin(), vehicleHandler.UpdateVehicle)
 				vehicles.DELETE("/:id", jwtMiddleware.RequireAdmin(), vehicleHandler.DeleteVehicle)
 				vehicles.PATCH("/:id/selling-price", jwtMiddleware.RequireAdmin(), vehicleHandler.SetSellingPrice)
+			}
+
+			// Customer routes
+			customers := protected.Group("/customers")
+			{
+				customers.GET("", customerHandler.ListCustomers)
+				customers.GET("/:id", customerHandler.GetCustomer)
+				customers.GET("/phone/:phone", customerHandler.GetCustomerByPhone)
+				customers.GET("/email/:email", customerHandler.GetCustomerByEmail)
+				customers.POST("", jwtMiddleware.RequireCashierOrAdmin(), customerHandler.CreateCustomer)
+				customers.PUT("/:id", jwtMiddleware.RequireCashierOrAdmin(), customerHandler.UpdateCustomer)
+				customers.DELETE("/:id", jwtMiddleware.RequireAdmin(), customerHandler.DeleteCustomer)
 			}
 		}
 	}

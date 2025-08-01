@@ -3,8 +3,10 @@ package utils
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -86,4 +88,29 @@ func IsValidEnum(value string, validValues []string) bool {
 		}
 	}
 	return false
+}
+
+// ValidateStruct validates a struct using validator package
+func ValidateStruct(s interface{}) error {
+	validate := validator.New()
+	err := validate.Struct(s)
+	if err != nil {
+		var errors []string
+		for _, err := range err.(validator.ValidationErrors) {
+			switch err.Tag() {
+			case "required":
+				errors = append(errors, fmt.Sprintf("%s is required", err.Field()))
+			case "email":
+				errors = append(errors, fmt.Sprintf("%s must be a valid email", err.Field()))
+			case "max":
+				errors = append(errors, fmt.Sprintf("%s must be at most %s characters", err.Field(), err.Param()))
+			case "min":
+				errors = append(errors, fmt.Sprintf("%s must be at least %s characters", err.Field(), err.Param()))
+			default:
+				errors = append(errors, fmt.Sprintf("%s is invalid", err.Field()))
+			}
+		}
+		return fmt.Errorf(strings.Join(errors, ", "))
+	}
+	return nil
 }

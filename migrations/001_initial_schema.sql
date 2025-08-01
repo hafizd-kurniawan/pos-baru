@@ -328,3 +328,17 @@ INSERT INTO vehicle_brands (name, type_id) VALUES
 -- Insert default admin user (password: admin123)
 INSERT INTO users (username, email, password, full_name, phone, role_id) VALUES 
 ('admin', 'admin@showroom.com', '$2a$10$CwTycUXWue0Thq9StjUM0uJ8KzCzFONZOEu.tA1U8Y7Uj7nJ7P8/K', 'System Administrator', '081234567890', 1);
+
+-- Insert sample customers
+INSERT INTO customers (name, phone, email, address, id_card_number) VALUES 
+('Budi Santoso', '081234567891', 'budi@email.com', 'Jl. Merdeka No. 123, Jakarta', '3101234567891234'),
+('Siti Aminah', '081234567892', 'siti@email.com', 'Jl. Sudirman No. 456, Jakarta', '3101234567892345'),
+('Agus Wijaya', '081234567893', 'agus@email.com', 'Jl. Thamrin No. 789, Jakarta', '3101234567893456'),
+('Maya Sari', '081234567894', 'maya@email.com', 'Jl. Gatot Subroto No. 101, Jakarta', '3101234567894567'),
+('Rudi Hartono', '081234567895', 'rudi@email.com', 'Jl. Kuningan No. 202, Jakarta', '3101234567895678');
+
+-- Insert sample suppliers
+INSERT INTO suppliers (name, contact_person, phone, email, address, is_active) VALUES 
+('CV Motor Jaya', 'Pak Joko', '021-12345678', 'info@motorjaya.com', 'Jl. Industri No. 45, Jakarta', true),
+('PT Mobil Sentosa', 'Bu Rina', '021-87654321', 'contact@mobilsentosa.com', 'Jl. Otomotif No. 67, Bekasi', true),
+('UD Spare Part Center', 'Pak Andi', '021-11223344', 'sales@sparepartcenter.com', 'Jl. Perdagangan No. 89, Tangerang', true);
