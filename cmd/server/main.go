@@ -50,6 +50,7 @@ func main() {
 	repairService := service.NewRepairService(repairRepo, vehicleRepo, userRepo, sparePartRepo)
 	dashboardService := service.NewDashboardService(dashboardRepo)
 	supplierService := service.NewSupplierService(supplierRepo)
+	userService := service.NewUserService(userRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -60,9 +61,10 @@ func main() {
 	repairHandler := handler.NewRepairHandler(repairService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	supplierHandler := handler.NewSupplierHandler(supplierService)
+	userHandler := handler.NewUserHandler(userService)
 
 	// Setup router
-	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, customerHandler, transactionHandler, sparePartHandler, repairHandler, dashboardHandler, supplierHandler)
+	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, customerHandler, transactionHandler, sparePartHandler, repairHandler, dashboardHandler, supplierHandler, userHandler)
 
 	// Start server
 	log.Printf("Starting server on port %s", cfg.Server.Port)
@@ -71,7 +73,7 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler, sparePartHandler *handler.SparePartHandler, repairHandler *handler.RepairHandler, dashboardHandler *handler.DashboardHandler, supplierHandler *handler.SupplierHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler, sparePartHandler *handler.SparePartHandler, repairHandler *handler.RepairHandler, dashboardHandler *handler.DashboardHandler, supplierHandler *handler.SupplierHandler, userHandler *handler.UserHandler) *gin.Engine {
 	// Set gin mode
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -216,6 +218,23 @@ func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, au
 				suppliers.POST("", jwtMiddleware.RequireCashierOrAdmin(), supplierHandler.CreateSupplier)
 				suppliers.PUT("/:id", jwtMiddleware.RequireCashierOrAdmin(), supplierHandler.UpdateSupplier)
 				suppliers.DELETE("/:id", jwtMiddleware.RequireAdmin(), supplierHandler.DeleteSupplier)
+			}
+
+			// User management routes
+			users := protected.Group("/users")
+			{
+				users.GET("", jwtMiddleware.RequireAdmin(), userHandler.ListUsers)
+				users.GET("/active", jwtMiddleware.RequireCashierOrAdmin(), userHandler.GetActiveUsers)
+				users.GET("/role/:role", jwtMiddleware.RequireCashierOrAdmin(), userHandler.GetUsersByRole)
+				users.GET("/:id", jwtMiddleware.RequireCashierOrAdmin(), userHandler.GetUser)
+				users.GET("/username/:username", jwtMiddleware.RequireCashierOrAdmin(), userHandler.GetUserByUsername)
+				users.GET("/email/:email", jwtMiddleware.RequireCashierOrAdmin(), userHandler.GetUserByEmail)
+				users.POST("", jwtMiddleware.RequireAdmin(), userHandler.CreateUser)
+				users.PUT("/:id", jwtMiddleware.RequireAdmin(), userHandler.UpdateUser)
+				users.DELETE("/:id", jwtMiddleware.RequireAdmin(), userHandler.DeleteUser)
+				users.POST("/change-password", userHandler.ChangePassword) // Users can change their own password
+				users.POST("/:id/reset-password", jwtMiddleware.RequireAdmin(), userHandler.ResetPassword) // Admin can reset any password
+				users.PATCH("/:id/toggle-status", jwtMiddleware.RequireAdmin(), userHandler.ToggleUserStatus)
 			}
 		}
 	}
