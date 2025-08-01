@@ -33,7 +33,7 @@ func main() {
 	vehicleRepo := repository.NewVehicleRepository(db)
 	customerRepo := repository.NewCustomerRepository(db)
 	transactionRepo := repository.NewTransactionRepository(db)
-	// sparePartRepo := repository.NewSparePartRepository(db) // TODO: Add spare part handlers
+	sparePartRepo := repository.NewSparePartRepository(db)
 
 	// Initialize JWT middleware
 	jwtMiddleware := middleware.NewJWTMiddleware(cfg)
@@ -43,15 +43,17 @@ func main() {
 	vehicleService := service.NewVehicleService(vehicleRepo)
 	customerService := service.NewCustomerService(customerRepo)
 	transactionService := service.NewTransactionService(transactionRepo, vehicleRepo, customerRepo)
+	sparePartService := service.NewSparePartService(sparePartRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
 	vehicleHandler := handler.NewVehicleHandler(vehicleService)
 	customerHandler := handler.NewCustomerHandler(customerService)
 	transactionHandler := handler.NewTransactionHandler(transactionService)
+	sparePartHandler := handler.NewSparePartHandler(sparePartService)
 
 	// Setup router
-	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, customerHandler, transactionHandler)
+	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, customerHandler, transactionHandler, sparePartHandler)
 
 	// Start server
 	log.Printf("Starting server on port %s", cfg.Server.Port)
@@ -60,7 +62,7 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler, sparePartHandler *handler.SparePartHandler) *gin.Engine {
 	// Set gin mode
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -147,6 +149,21 @@ func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, au
 					sales.POST("", jwtMiddleware.RequireCashierOrAdmin(), transactionHandler.CreateSalesTransaction)
 					sales.PATCH("/:id/payment", jwtMiddleware.RequireCashierOrAdmin(), transactionHandler.UpdateSalesPaymentStatus)
 				}
+			}
+
+			// Spare Parts routes
+			spareParts := protected.Group("/spare-parts")
+			{
+				spareParts.GET("", sparePartHandler.ListSpareParts)
+				spareParts.GET("/low-stock", sparePartHandler.GetLowStockItems)
+				spareParts.GET("/:id", sparePartHandler.GetSparePart)
+				spareParts.GET("/code/:code", sparePartHandler.GetSparePartByCode)
+				spareParts.GET("/:id/stock-check", sparePartHandler.CheckStockAvailability)
+				spareParts.POST("", jwtMiddleware.RequireCashierOrAdmin(), sparePartHandler.CreateSparePart)
+				spareParts.PUT("/:id", jwtMiddleware.RequireCashierOrAdmin(), sparePartHandler.UpdateSparePart)
+				spareParts.DELETE("/:id", jwtMiddleware.RequireAdmin(), sparePartHandler.DeleteSparePart)
+				spareParts.PATCH("/:id/stock", jwtMiddleware.RequireCashierOrAdmin(), sparePartHandler.UpdateStock)
+				spareParts.POST("/bulk-stock-update", jwtMiddleware.RequireCashierOrAdmin(), sparePartHandler.BulkUpdateStock)
 			}
 		}
 	}

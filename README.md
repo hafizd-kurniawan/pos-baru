@@ -262,6 +262,104 @@ Content-Type: application/json
 }
 ```
 
+### Spare Parts Management
+
+#### List Spare Parts
+```http
+GET /api/spare-parts?page=1&limit=10&active=true
+Authorization: Bearer <token>
+```
+
+#### Get Spare Part Details
+```http
+GET /api/spare-parts/{id}
+Authorization: Bearer <token>
+```
+
+#### Get Spare Part by Code
+```http
+GET /api/spare-parts/code/{code}
+Authorization: Bearer <token>
+```
+
+#### Create Spare Part (Kasir/Admin)
+```http
+POST /api/spare-parts
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "code": "SP011",
+  "name": "Oli Mesin 10W-40",
+  "description": "Oli mesin kualitas premium",
+  "unit": "liter",
+  "purchase_price": 35000,
+  "selling_price": 45000,
+  "stock_quantity": 50,
+  "minimum_stock": 10
+}
+```
+
+#### Update Spare Part (Kasir/Admin)
+```http
+PUT /api/spare-parts/{id}
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "Oli Mesin 10W-40 Premium",
+  "selling_price": 50000,
+  "minimum_stock": 15
+}
+```
+
+#### Update Stock (Kasir/Admin)
+```http
+PATCH /api/spare-parts/{id}/stock
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "quantity": 10,
+  "operation": "add"
+}
+```
+
+#### Get Low Stock Items
+```http
+GET /api/spare-parts/low-stock?page=1&limit=10
+Authorization: Bearer <token>
+```
+
+#### Check Stock Availability
+```http
+GET /api/spare-parts/{id}/stock-check?quantity=5
+Authorization: Bearer <token>
+```
+
+#### Bulk Stock Update (Kasir/Admin)
+```http
+POST /api/spare-parts/bulk-stock-update
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "updates": [
+    {
+      "quantity": 5,
+      "operation": "subtract",
+      "notes": "Used for repair"
+    }
+  ]
+}
+```
+
+#### Delete Spare Part (Admin)
+```http
+DELETE /api/spare-parts/{id}
+Authorization: Bearer <token>
+```
+
 ### Vehicle Management
 
 #### List Vehicles
@@ -434,15 +532,16 @@ curl -X GET http://localhost:8080/api/vehicles \
 - [x] Vehicle CRUD operations
 - [x] Customer CRUD operations
 - [x] Transaction management (Purchase & Sales)
+- [x] Spare Parts inventory management
 - [x] Database setup with PostgreSQL
 - [x] Clean architecture implementation
 - [x] API validation and error handling
 - [x] Vehicle status tracking
 - [x] HPP calculation system
 - [x] Payment tracking system
+- [x] Stock management with low stock alerts
 
 ### 🚧 In Progress
-- [ ] Spare parts management
 - [ ] Repair system
 - [ ] Dashboard endpoints
 - [ ] Invoice generation

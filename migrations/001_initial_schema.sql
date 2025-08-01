@@ -342,3 +342,16 @@ INSERT INTO suppliers (name, contact_person, phone, email, address, is_active) V
 ('CV Motor Jaya', 'Pak Joko', '021-12345678', 'info@motorjaya.com', 'Jl. Industri No. 45, Jakarta', true),
 ('PT Mobil Sentosa', 'Bu Rina', '021-87654321', 'contact@mobilsentosa.com', 'Jl. Otomotif No. 67, Bekasi', true),
 ('UD Spare Part Center', 'Pak Andi', '021-11223344', 'sales@sparepartcenter.com', 'Jl. Perdagangan No. 89, Tangerang', true);
+
+-- Insert sample spare parts
+INSERT INTO spare_parts (code, name, description, unit, purchase_price, selling_price, stock_quantity, minimum_stock) VALUES 
+('SP001', 'Oli Mesin 10W-40', 'Oli mesin kualitas premium untuk motor', 'liter', 35000, 45000, 50, 10),
+('SP002', 'Ban Dalam 80/90-17', 'Ban dalam standar untuk motor bebek', 'pcs', 15000, 25000, 20, 5),
+('SP003', 'Kampas Rem Depan', 'Kampas rem depan universal', 'set', 25000, 40000, 15, 3),
+('SP004', 'Busi NGK', 'Busi standar motor bebek NGK', 'pcs', 12000, 18000, 30, 5),
+('SP005', 'Filter Udara', 'Filter udara motor bebek', 'pcs', 20000, 30000, 25, 5),
+('SP006', 'Rantai Motor', 'Rantai motor standar 428H', 'pcs', 45000, 65000, 10, 2),
+('SP007', 'Kabel Gas', 'Kabel gas motor bebek universal', 'pcs', 15000, 25000, 12, 3),
+('SP008', 'Lampu Depan LED', 'Lampu depan LED H4', 'pcs', 85000, 120000, 8, 2),
+('SP009', 'Oli Gardan SAE 90', 'Oli gardan untuk motor matic', 'liter', 25000, 35000, 15, 3),
+('SP010', 'Bearing Roda', 'Bearing roda belakang universal', 'set', 35000, 50000, 6, 2);
