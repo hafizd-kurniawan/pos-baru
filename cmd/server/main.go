@@ -32,6 +32,7 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	vehicleRepo := repository.NewVehicleRepository(db)
 	customerRepo := repository.NewCustomerRepository(db)
+	transactionRepo := repository.NewTransactionRepository(db)
 	// sparePartRepo := repository.NewSparePartRepository(db) // TODO: Add spare part handlers
 
 	// Initialize JWT middleware
@@ -41,14 +42,16 @@ func main() {
 	authService := service.NewAuthService(userRepo, jwtMiddleware)
 	vehicleService := service.NewVehicleService(vehicleRepo)
 	customerService := service.NewCustomerService(customerRepo)
+	transactionService := service.NewTransactionService(transactionRepo, vehicleRepo, customerRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
 	vehicleHandler := handler.NewVehicleHandler(vehicleService)
 	customerHandler := handler.NewCustomerHandler(customerService)
+	transactionHandler := handler.NewTransactionHandler(transactionService)
 
 	// Setup router
-	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, customerHandler)
+	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, customerHandler, transactionHandler)
 
 	// Start server
 	log.Printf("Starting server on port %s", cfg.Server.Port)
@@ -57,7 +60,7 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, customerHandler *handler.CustomerHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler) *gin.Engine {
 	// Set gin mode
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -122,6 +125,28 @@ func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, au
 				customers.POST("", jwtMiddleware.RequireCashierOrAdmin(), customerHandler.CreateCustomer)
 				customers.PUT("/:id", jwtMiddleware.RequireCashierOrAdmin(), customerHandler.UpdateCustomer)
 				customers.DELETE("/:id", jwtMiddleware.RequireAdmin(), customerHandler.DeleteCustomer)
+			}
+
+			// Transaction routes
+			transactions := protected.Group("/transactions")
+			{
+				// Purchase transactions
+				purchase := transactions.Group("/purchase")
+				{
+					purchase.GET("", transactionHandler.ListPurchaseTransactions)
+					purchase.GET("/:id", transactionHandler.GetPurchaseTransaction)
+					purchase.POST("", jwtMiddleware.RequireCashierOrAdmin(), transactionHandler.CreatePurchaseTransaction)
+					purchase.PATCH("/:id/payment", jwtMiddleware.RequireCashierOrAdmin(), transactionHandler.UpdatePurchasePaymentStatus)
+				}
+
+				// Sales transactions
+				sales := transactions.Group("/sales")
+				{
+					sales.GET("", transactionHandler.ListSalesTransactions)
+					sales.GET("/:id", transactionHandler.GetSalesTransaction)
+					sales.POST("", jwtMiddleware.RequireCashierOrAdmin(), transactionHandler.CreateSalesTransaction)
+					sales.PATCH("/:id/payment", jwtMiddleware.RequireCashierOrAdmin(), transactionHandler.UpdateSalesPaymentStatus)
+				}
 			}
 		}
 	}

@@ -172,6 +172,96 @@ DELETE /api/customers/{id}
 Authorization: Bearer <token>
 ```
 
+### Transaction Management
+
+#### Purchase Transactions
+
+##### List Purchase Transactions
+```http
+GET /api/transactions/purchase?page=1&limit=10&date_from=2024-01-01&date_to=2024-12-31
+Authorization: Bearer <token>
+```
+
+##### Get Purchase Transaction Details
+```http
+GET /api/transactions/purchase/{id}
+Authorization: Bearer <token>
+```
+
+##### Create Purchase Transaction (Kasir/Admin)
+```http
+POST /api/transactions/purchase
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "source_type": "customer",
+  "source_id": 1,
+  "vehicle_id": 1,
+  "purchase_price": 8000000,
+  "payment_method": "cash",
+  "payment_status": "paid",
+  "notes": "Pembelian motor bekas dari customer"
+}
+```
+
+##### Update Purchase Payment Status (Kasir/Admin)
+```http
+PATCH /api/transactions/purchase/{id}/payment
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "payment_status": "paid",
+  "notes": "Pembayaran lunas"
+}
+```
+
+#### Sales Transactions
+
+##### List Sales Transactions
+```http
+GET /api/transactions/sales?page=1&limit=10&date_from=2024-01-01&date_to=2024-12-31
+Authorization: Bearer <token>
+```
+
+##### Get Sales Transaction Details
+```http
+GET /api/transactions/sales/{id}
+Authorization: Bearer <token>
+```
+
+##### Create Sales Transaction (Kasir/Admin)
+```http
+POST /api/transactions/sales
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "customer_id": 1,
+  "vehicle_id": 1,
+  "selling_price": 9500000,
+  "payment_method": "cash",
+  "payment_status": "paid",
+  "down_payment": 9500000,
+  "notes": "Penjualan cash"
+}
+```
+
+##### Update Sales Payment Status (Kasir/Admin)
+```http
+PATCH /api/transactions/sales/{id}/payment
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "payment_status": "partial",
+  "down_payment": 5000000,
+  "remaining_payment": 4500000,
+  "notes": "Pembayaran cicilan"
+}
+```
+
 ### Vehicle Management
 
 #### List Vehicles
@@ -343,15 +433,16 @@ curl -X GET http://localhost:8080/api/vehicles \
 - [x] Role-based access control
 - [x] Vehicle CRUD operations
 - [x] Customer CRUD operations
+- [x] Transaction management (Purchase & Sales)
 - [x] Database setup with PostgreSQL
 - [x] Clean architecture implementation
 - [x] API validation and error handling
 - [x] Vehicle status tracking
 - [x] HPP calculation system
+- [x] Payment tracking system
 
 ### 🚧 In Progress
 - [ ] Spare parts management
-- [ ] Transaction management (Purchase & Sales)
 - [ ] Repair system
 - [ ] Dashboard endpoints
 - [ ] Invoice generation
