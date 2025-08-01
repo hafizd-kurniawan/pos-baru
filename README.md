@@ -1,1 +1,324 @@
-# pos-baru
+# POS Showroom Kendaraan - Backend API
+
+Sistem backend untuk Point of Sale (POS) showroom kendaraan yang dibangun dengan Go, Gin, SQLX, dan PostgreSQL menggunakan clean architecture.
+
+## 📋 Fitur
+
+- **Autentikasi & Otorisasi**: JWT-based authentication dengan role-based access control
+- **Manajemen Pengguna**: Admin, Kasir, dan Mekanik dengan permission yang berbeda
+- **Manajemen Kendaraan**: CRUD kendaraan dengan tracking status dan HPP
+- **Manajemen Customer**: Database customer untuk transaksi
+- **Sistem Transaksi**: Pembelian dan penjualan kendaraan dengan perhitungan profit
+- **Sistem Perbaikan**: Tracking perbaikan kendaraan dengan spare parts
+- **Dashboard**: Metrics dan laporan untuk berbagai role
+- **Inventory**: Manajemen spare parts dengan stock tracking
+
+## 🏗️ Arsitektur
+
+Sistem ini menggunakan Clean Architecture dengan struktur:
+
+```
+├── cmd/server/          # Main application
+├── internal/
+│   ├── config/          # Configuration management
+│   ├── domain/models/   # Domain entities
+│   ├── repository/      # Data access layer
+│   ├── service/         # Business logic layer
+│   ├── handler/         # HTTP handlers
+│   └── middleware/      # HTTP middleware
+├── pkg/
+│   ├── database/        # Database connection
+│   └── utils/           # Utility functions
+└── migrations/          # Database migrations
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Go 1.21+
+- Docker & Docker Compose
+- PostgreSQL (via Docker)
+
+### Installation
+
+1. **Clone repository**
+```bash
+git clone https://github.com/hafizd-kurniawan/pos-baru.git
+cd pos-baru
+```
+
+2. **Setup environment**
+```bash
+cp .env.example .env
+# Edit .env sesuai kebutuhan
+```
+
+3. **Start database**
+```bash
+docker compose up -d
+```
+
+4. **Build dan run aplikasi**
+```bash
+go mod tidy
+go build ./cmd/server
+./server
+```
+
+Server akan berjalan di `http://localhost:8080`
+
+### Default Admin User
+
+- **Username**: `admin`
+- **Password**: `admin123`
+- **Role**: Administrator
+
+## 📚 API Documentation
+
+### Authentication
+
+#### Login
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
+#### Get Profile
+```http
+GET /api/auth/profile
+Authorization: Bearer <token>
+```
+
+#### Register User (Admin only)
+```http
+POST /api/auth/register
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "username": "kasir1",
+  "email": "kasir1@showroom.com",
+  "password": "password123",
+  "full_name": "Kasir Satu",
+  "phone": "081234567891",
+  "role_id": 2
+}
+```
+
+### Vehicle Management
+
+#### List Vehicles
+```http
+GET /api/vehicles?page=1&limit=10&status=available
+Authorization: Bearer <token>
+```
+
+#### Get Available Vehicles
+```http
+GET /api/vehicles/available?page=1&limit=10
+Authorization: Bearer <token>
+```
+
+#### Get Vehicle Details
+```http
+GET /api/vehicles/{id}
+Authorization: Bearer <token>
+```
+
+#### Create Vehicle (Kasir/Admin)
+```http
+POST /api/vehicles
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "code": "VHC20250801001",
+  "brand_id": 1,
+  "model": "Beat",
+  "year": 2020,
+  "color": "Red",
+  "engine_capacity": "110cc",
+  "fuel_type": "Bensin",
+  "transmission_type": "Manual",
+  "license_plate": "B1234ABC",
+  "odometer": 15000,
+  "source_type": "customer",
+  "source_id": 1,
+  "purchase_price": 8000000,
+  "condition_status": "good"
+}
+```
+
+#### Update Vehicle (Kasir/Admin)
+```http
+PUT /api/vehicles/{id}
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "model": "Beat Updated",
+  "year": 2021,
+  "color": "Blue"
+}
+```
+
+#### Set Selling Price (Admin)
+```http
+PATCH /api/vehicles/{id}/selling-price
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "selling_price": 9500000
+}
+```
+
+#### Delete Vehicle (Admin)
+```http
+DELETE /api/vehicles/{id}
+Authorization: Bearer <token>
+```
+
+## 🗃️ Database Schema
+
+### Roles
+- `admin`: Full access
+- `kasir`: Transaction management, vehicle input
+- `mekanik`: Repair management
+
+### Vehicle Status
+- `available`: Siap dijual
+- `in_repair`: Sedang diperbaiki
+- `sold`: Sudah terjual
+- `reserved`: Reserved untuk customer
+
+### Transaction Flow
+
+1. **Pembelian Kendaraan**
+   - Kasir input vehicle dari customer/supplier
+   - System calculate HPP = Purchase Price + Repair Cost
+   - Vehicle status = available/in_repair
+
+2. **Perbaikan Kendaraan**
+   - Admin/Kasir assign ke mekanik
+   - Mekanik update progress dan spare parts
+   - System update HPP dengan repair cost
+
+3. **Penjualan Kendaraan**
+   - Admin set selling price
+   - Kasir proses penjualan ke customer
+   - System calculate profit = Selling Price - HPP
+   - Vehicle status = sold
+
+## 🔧 Configuration
+
+Environment variables dalam `.env`:
+
+```env
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=posuser
+DB_PASSWORD=pospassword
+DB_NAME=pos_showroom
+DB_SSLMODE=disable
+
+# JWT
+JWT_SECRET=your_super_secret_jwt_key_here
+
+# Server
+SERVER_PORT=8080
+APP_ENV=development
+```
+
+## 📊 Dashboard Features
+
+### Admin Dashboard
+- Total revenue & profit
+- Vehicle inventory overview
+- Transaction summary
+- Performance metrics
+
+### Kasir Dashboard
+- Available vehicles
+- Today's transactions
+- Pending payments
+- Customer management
+
+### Mekanik Dashboard
+- Assigned repairs
+- Required spare parts
+- Completed work
+- Work progress
+
+## 🧪 Testing
+
+Test the API endpoints:
+
+```bash
+# Health check
+curl http://localhost:8080/health
+
+# Login
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}'
+
+# List vehicles (with token)
+curl -X GET http://localhost:8080/api/vehicles \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## 📝 Development Status
+
+### ✅ Completed Features
+- [x] JWT Authentication & Authorization
+- [x] Role-based access control
+- [x] Vehicle CRUD operations
+- [x] Database setup with PostgreSQL
+- [x] Clean architecture implementation
+- [x] API validation and error handling
+- [x] Vehicle status tracking
+- [x] HPP calculation system
+
+### 🚧 In Progress
+- [ ] Spare parts management
+- [ ] Transaction management
+- [ ] Repair system
+- [ ] Dashboard endpoints
+- [ ] Invoice generation
+- [ ] Daily/monthly closing
+
+### 📋 TODO
+- [ ] API documentation with Swagger
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Docker deployment
+- [ ] CI/CD pipeline
+- [ ] Performance optimization
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Create Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+Untuk pertanyaan atau bantuan, silakan buat issue di repository ini.
+
+---
+
+**Built with ❤️ using Go, Gin, SQLX, and PostgreSQL**
