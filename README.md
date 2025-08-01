@@ -9,9 +9,10 @@ Sistem backend untuk Point of Sale (POS) showroom kendaraan yang dibangun dengan
 - **Manajemen Kendaraan**: CRUD kendaraan dengan tracking status dan HPP
 - **Manajemen Customer**: Database customer untuk transaksi
 - **Sistem Transaksi**: Pembelian dan penjualan kendaraan dengan perhitungan profit
-- **Sistem Perbaikan**: Tracking perbaikan kendaraan dengan spare parts
+- **Sistem Perbaikan**: Tracking perbaikan kendaraan dengan assignment mekanik dan spare parts
+- **Inventory**: Manajemen spare parts dengan stock tracking dan low stock alerts
 - **Dashboard**: Metrics dan laporan untuk berbagai role
-- **Inventory**: Manajemen spare parts dengan stock tracking
+- **Laporan**: Statistik repair, workload mekanik, dan financial reporting
 
 ## 🏗️ Arsitektur
 
@@ -360,6 +361,120 @@ DELETE /api/spare-parts/{id}
 Authorization: Bearer <token>
 ```
 
+### Repair System Management
+
+#### List Repair Orders
+```http
+GET /api/repairs?page=1&limit=10&status=pending&mechanic_id=3
+Authorization: Bearer <token>
+```
+
+#### Get Repair Order Details
+```http
+GET /api/repairs/{id}
+Authorization: Bearer <token>
+```
+
+#### Get Repair Order by Code
+```http
+GET /api/repairs/code/{code}
+Authorization: Bearer <token>
+```
+
+#### Create Repair Order (Kasir/Admin)
+```http
+POST /api/repairs
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "code": "RPR-20241201-001",
+  "vehicle_id": 1,
+  "mechanic_id": 3,
+  "description": "Ganti oli mesin dan filter udara",
+  "estimated_cost": 150000,
+  "notes": "Perawatan rutin"
+}
+```
+
+#### Update Repair Order (Kasir/Admin)
+```http
+PUT /api/repairs/{id}
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "description": "Ganti oli mesin, filter udara, dan tune up",
+  "estimated_cost": 200000,
+  "notes": "Perawatan lengkap"
+}
+```
+
+#### Update Repair Progress (Mechanic/Kasir/Admin)
+```http
+PATCH /api/repairs/{id}/progress
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "status": "completed",
+  "actual_cost": 180000,
+  "notes": "Perbaikan selesai, semua parts sudah diganti",
+  "spare_parts": [
+    {
+      "spare_part_id": 1,
+      "quantity_used": 2
+    },
+    {
+      "spare_part_id": 3,
+      "quantity_used": 1
+    }
+  ]
+}
+```
+
+#### Add Spare Part to Repair (Mechanic/Kasir/Admin)
+```http
+POST /api/repairs/{id}/spare-parts
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "spare_part_id": 1,
+  "quantity_used": 2
+}
+```
+
+#### Remove Spare Part from Repair (Kasir/Admin)
+```http
+DELETE /api/repairs/{id}/spare-parts/{spare_part_id}
+Authorization: Bearer <token>
+```
+
+#### Get Repair Spare Parts
+```http
+GET /api/repairs/{id}/spare-parts
+Authorization: Bearer <token>
+```
+
+#### Get Repair Statistics
+```http
+GET /api/repairs/stats?mechanic_id=3&date_from=2024-01-01&date_to=2024-12-31
+Authorization: Bearer <token>
+```
+
+#### Get Mechanic Workload
+```http
+GET /api/repairs/mechanic-workload
+Authorization: Bearer <token>
+```
+
+#### Delete Repair Order (Admin)
+```http
+DELETE /api/repairs/{id}
+Authorization: Bearer <token>
+```
+
 ### Vehicle Management
 
 #### List Vehicles
@@ -533,6 +648,8 @@ curl -X GET http://localhost:8080/api/vehicles \
 - [x] Customer CRUD operations
 - [x] Transaction management (Purchase & Sales)
 - [x] Spare Parts inventory management
+- [x] Repair system with mechanic assignment
+- [x] Repair progress tracking and spare parts usage
 - [x] Database setup with PostgreSQL
 - [x] Clean architecture implementation
 - [x] API validation and error handling
@@ -540,14 +657,16 @@ curl -X GET http://localhost:8080/api/vehicles \
 - [x] HPP calculation system
 - [x] Payment tracking system
 - [x] Stock management with low stock alerts
+- [x] Repair statistics and reporting
 
 ### 🚧 In Progress
-- [ ] Repair system
 - [ ] Dashboard endpoints
 - [ ] Invoice generation
 - [ ] Daily/monthly closing
 
 ### 📋 TODO
+- [ ] Suppliers management
+- [ ] Vehicle photos management
 - [ ] API documentation with Swagger
 - [ ] Unit tests
 - [ ] Integration tests

@@ -80,3 +80,12 @@ type RepairProgressUpdateRequest struct {
 	Notes       *string                         `json:"notes"`
 	SpareParts  []RepairSparePartCreateRequest  `json:"spare_parts,omitempty"`
 }
+
+// RepairOrderFilter for filtering repair orders
+type RepairOrderFilter struct {
+	Status     RepairStatus `form:"status"`
+	MechanicID int          `form:"mechanic_id"`
+	VehicleID  int          `form:"vehicle_id"`
+	DateFrom   string       `form:"date_from"`
+	DateTo     string       `form:"date_to"`
+}

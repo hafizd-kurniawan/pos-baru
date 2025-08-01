@@ -21,6 +21,7 @@ type VehicleRepository interface {
 	UpdateStatus(id int, status models.VehicleStatus) error
 	UpdateHPPPrice(id int, hppPrice float64) error
 	UpdateSellingPrice(id int, sellingPrice float64) error
+	UpdateRepairCost(id int, repairCost float64) error
 	MarkAsSold(id int, soldPrice float64) error
 }
 
@@ -352,6 +353,26 @@ func (r *vehicleRepository) UpdateSellingPrice(id int, sellingPrice float64) err
 	result, err := r.db.Exec(query, sellingPrice, id)
 	if err != nil {
 		return fmt.Errorf("failed to update vehicle selling price: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("vehicle not found")
+	}
+
+	return nil
+}
+
+func (r *vehicleRepository) UpdateRepairCost(id int, repairCost float64) error {
+	query := `UPDATE vehicles SET repair_cost = $1, hpp_price = purchase_price + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
+	
+	result, err := r.db.Exec(query, repairCost, id)
+	if err != nil {
+		return fmt.Errorf("failed to update vehicle repair cost: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
