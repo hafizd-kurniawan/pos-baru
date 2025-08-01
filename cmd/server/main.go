@@ -35,6 +35,7 @@ func main() {
 	transactionRepo := repository.NewTransactionRepository(db)
 	sparePartRepo := repository.NewSparePartRepository(db)
 	repairRepo := repository.NewRepairRepository(db)
+	dashboardRepo := repository.NewDashboardRepository(db.DB)
 
 	// Initialize JWT middleware
 	jwtMiddleware := middleware.NewJWTMiddleware(cfg)
@@ -46,6 +47,7 @@ func main() {
 	transactionService := service.NewTransactionService(transactionRepo, vehicleRepo, customerRepo)
 	sparePartService := service.NewSparePartService(sparePartRepo)
 	repairService := service.NewRepairService(repairRepo, vehicleRepo, userRepo, sparePartRepo)
+	dashboardService := service.NewDashboardService(dashboardRepo)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -54,9 +56,10 @@ func main() {
 	transactionHandler := handler.NewTransactionHandler(transactionService)
 	sparePartHandler := handler.NewSparePartHandler(sparePartService)
 	repairHandler := handler.NewRepairHandler(repairService)
+	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 
 	// Setup router
-	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, customerHandler, transactionHandler, sparePartHandler, repairHandler)
+	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, customerHandler, transactionHandler, sparePartHandler, repairHandler, dashboardHandler)
 
 	// Start server
 	log.Printf("Starting server on port %s", cfg.Server.Port)
@@ -65,7 +68,7 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler, sparePartHandler *handler.SparePartHandler, repairHandler *handler.RepairHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler, sparePartHandler *handler.SparePartHandler, repairHandler *handler.RepairHandler, dashboardHandler *handler.DashboardHandler) *gin.Engine {
 	// Set gin mode
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -184,6 +187,19 @@ func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, au
 				repairs.PATCH("/:id/progress", repairHandler.UpdateRepairProgress) // Mechanics can update their own repairs
 				repairs.POST("/:id/spare-parts", repairHandler.AddSparePartToRepair) // Mechanics can add spare parts
 				repairs.DELETE("/:id/spare-parts/:spare_part_id", jwtMiddleware.RequireCashierOrAdmin(), repairHandler.RemoveSparePartFromRepair)
+			}
+
+			// Dashboard routes
+			dashboard := protected.Group("/dashboard")
+			{
+				dashboard.GET("", dashboardHandler.GetDashboard) // Role-based dashboard
+				dashboard.GET("/admin", jwtMiddleware.RequireAdmin(), dashboardHandler.GetAdminDashboard)
+				dashboard.GET("/cashier", jwtMiddleware.RequireCashierOrAdmin(), dashboardHandler.GetCashierDashboard)
+				dashboard.GET("/mechanic", dashboardHandler.GetMechanicDashboard) // Current user
+				dashboard.GET("/mechanic/:mechanic_id", jwtMiddleware.RequireCashierOrAdmin(), dashboardHandler.GetMechanicDashboard) // Specific mechanic
+				dashboard.POST("/daily-closing", jwtMiddleware.RequireCashierOrAdmin(), dashboardHandler.CreateDailyClosing)
+				dashboard.POST("/monthly-closing", jwtMiddleware.RequireAdmin(), dashboardHandler.CreateMonthlyClosing)
+				dashboard.POST("/update-metrics", jwtMiddleware.RequireAdmin(), dashboardHandler.UpdateMetrics)
 			}
 		}
 	}
