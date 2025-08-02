@@ -141,7 +141,7 @@ class AppRoutes {
               GoRoute(
                 path: ':id',
                 builder: (context, state) {
-                  final id = int.parse(state.pathParameters['id']!);
+                  final id = state.pathParameters['id']!;
                   return SparePartDetailPage(sparePartId: id);
                 },
               ),
@@ -158,7 +158,7 @@ class AppRoutes {
               GoRoute(
                 path: ':id',
                 builder: (context, state) {
-                  final id = int.parse(state.pathParameters['id']!);
+                  final id = state.pathParameters['id']!;
                   return RepairDetailPage(repairId: id);
                 },
               ),
@@ -175,7 +175,7 @@ class AppRoutes {
               GoRoute(
                 path: ':id',
                 builder: (context, state) {
-                  final id = int.parse(state.pathParameters['id']!);
+                  final id = state.pathParameters['id']!;
                   return SupplierDetailPage(supplierId: id);
                 },
               ),
@@ -192,7 +192,7 @@ class AppRoutes {
               GoRoute(
                 path: ':id',
                 builder: (context, state) {
-                  final id = int.parse(state.pathParameters['id']!);
+                  final id = state.pathParameters['id']!;
                   return UserDetailPage(userId: id);
                 },
               ),

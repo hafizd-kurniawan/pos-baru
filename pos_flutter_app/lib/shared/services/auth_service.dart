@@ -1,7 +1,7 @@
-import '../core/network/api_client.dart';
-import '../core/storage/storage_service.dart';
-import '../core/constants/api_endpoints.dart';
-import '../core/models/user.dart';
+import '../../core/network/api_client.dart';
+import '../../core/storage/storage_service.dart';
+import '../../core/constants/api_endpoints.dart';
+import '../../core/models/user.dart';
 
 class AuthService {
   final ApiClient _apiClient;

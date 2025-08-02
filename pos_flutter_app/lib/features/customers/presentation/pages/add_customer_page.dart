@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/models/customer.dart';
 import '../blocs/customer_bloc.dart';
-import '../../vehicles/presentation/widgets/form_section.dart';
+import '../../../vehicles/presentation/widgets/form_section.dart';
 
 class AddCustomerPage extends StatefulWidget {
   const AddCustomerPage({super.key});

@@ -277,19 +277,3 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     }
   }
 }
-  }
-
-  Future<void> _onLoadTransactions(
-    LoadTransactions event,
-    Emitter<TransactionState> emit,
-  ) async {
-    emit(TransactionLoading());
-    try {
-      // TODO: Implement actual API call
-      await Future.delayed(const Duration(seconds: 1));
-      emit(const TransactionsLoaded(transactions: []));
-    } catch (e) {
-      emit(TransactionError(message: e.toString()));
-    }
-  }
-}
