@@ -16,24 +16,30 @@ const (
 
 // RepairOrder represents the repair_orders table
 type RepairOrder struct {
-	ID            int                  `json:"id" db:"id"`
-	Code          string               `json:"code" db:"code" validate:"required,max=50"`
-	VehicleID     int                  `json:"vehicle_id" db:"vehicle_id" validate:"required"`
-	MechanicID    int                  `json:"mechanic_id" db:"mechanic_id" validate:"required"`
-	AssignedBy    int                  `json:"assigned_by" db:"assigned_by" validate:"required"`
-	Description   *string              `json:"description" db:"description"`
-	EstimatedCost float64              `json:"estimated_cost" db:"estimated_cost" validate:"min=0"`
-	ActualCost    float64              `json:"actual_cost" db:"actual_cost" validate:"min=0"`
-	Status        RepairStatus         `json:"status" db:"status"`
-	StartedAt     *time.Time           `json:"started_at" db:"started_at"`
-	CompletedAt   *time.Time           `json:"completed_at" db:"completed_at"`
-	Notes         *string              `json:"notes" db:"notes"`
-	CreatedAt     time.Time            `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time            `json:"updated_at" db:"updated_at"`
-	Vehicle       *Vehicle             `json:"vehicle,omitempty"`
-	Mechanic      *User                `json:"mechanic,omitempty"`
-	Assigner      *User                `json:"assigner,omitempty"`
-	SpareParts    []RepairSparePart    `json:"spare_parts,omitempty"`
+	ID            int          `json:"id" db:"id"`
+	Code          string       `json:"code" db:"code" validate:"required,max=50"`
+	VehicleID     int          `json:"vehicle_id" db:"vehicle_id" validate:"required"`
+	MechanicID    int          `json:"mechanic_id" db:"mechanic_id" validate:"required"`
+	AssignedBy    int          `json:"assigned_by" db:"assigned_by" validate:"required"`
+	Description   *string      `json:"description" db:"description"`
+	EstimatedCost float64      `json:"estimated_cost" db:"estimated_cost" validate:"min=0"`
+	ActualCost    float64      `json:"actual_cost" db:"actual_cost" validate:"min=0"`
+	Status        RepairStatus `json:"status" db:"status"`
+	StartedAt     *time.Time   `json:"started_at" db:"started_at"`
+	CompletedAt   *time.Time   `json:"completed_at" db:"completed_at"`
+	Notes         *string      `json:"notes" db:"notes"`
+	CreatedAt     time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at" db:"updated_at"`
+	// Additional fields for joined queries
+	Brand        *string `json:"brand,omitempty" db:"brand"`
+	TypeName     *string `json:"type_name,omitempty" db:"type_name"`
+	LicensePlate *string `json:"license_plate,omitempty" db:"license_plate"`
+	MechanicName *string `json:"mechanic_name,omitempty" db:"mechanic_name"`
+	// Relationships
+	Vehicle    *Vehicle          `json:"vehicle,omitempty"`
+	Mechanic   *User             `json:"mechanic,omitempty"`
+	Assigner   *User             `json:"assigner,omitempty"`
+	SpareParts []RepairSparePart `json:"spare_parts,omitempty"`
 }
 
 // RepairSparePart represents the repair_spare_parts table
@@ -50,12 +56,12 @@ type RepairSparePart struct {
 
 // RepairOrderCreateRequest for creating new repair order
 type RepairOrderCreateRequest struct {
-	Code          string   `json:"code" validate:"required,max=50"`
-	VehicleID     int      `json:"vehicle_id" validate:"required"`
-	MechanicID    int      `json:"mechanic_id" validate:"required"`
-	Description   *string  `json:"description"`
-	EstimatedCost float64  `json:"estimated_cost" validate:"min=0"`
-	Notes         *string  `json:"notes"`
+	Code          string  `json:"code" validate:"required,max=50"`
+	VehicleID     int     `json:"vehicle_id" validate:"required"`
+	MechanicID    int     `json:"mechanic_id" validate:"required"`
+	Description   *string `json:"description"`
+	EstimatedCost float64 `json:"estimated_cost" validate:"min=0"`
+	Notes         *string `json:"notes"`
 }
 
 // RepairOrderUpdateRequest for updating repair order
@@ -75,10 +81,10 @@ type RepairSparePartCreateRequest struct {
 
 // RepairProgressUpdateRequest for updating repair progress
 type RepairProgressUpdateRequest struct {
-	Status      RepairStatus                    `json:"status" validate:"required"`
-	ActualCost  *float64                        `json:"actual_cost" validate:"omitempty,min=0"`
-	Notes       *string                         `json:"notes"`
-	SpareParts  []RepairSparePartCreateRequest  `json:"spare_parts,omitempty"`
+	Status     RepairStatus                   `json:"status" validate:"required"`
+	ActualCost *float64                       `json:"actual_cost" validate:"omitempty,min=0"`
+	Notes      *string                        `json:"notes"`
+	SpareParts []RepairSparePartCreateRequest `json:"spare_parts,omitempty"`
 }
 
 // RepairOrderFilter for filtering repair orders

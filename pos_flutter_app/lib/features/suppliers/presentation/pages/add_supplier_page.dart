@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../blocs/supplier_bloc.dart';
 import '../../../vehicles/presentation/widgets/form_section.dart';
 
 class AddSupplierPage extends StatefulWidget {
@@ -49,6 +46,7 @@ class _AddSupplierPageState extends State<AddSupplierPage> {
             children: [
               FormSection(
                 title: 'Informasi Supplier',
+                icon: Icons.business,
                 children: [
                   TextFormField(
                     controller: _nameController,

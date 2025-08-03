@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../../../core/models/transaction.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class TransactionCard extends StatelessWidget {
   final Transaction transaction;
@@ -59,12 +60,12 @@ class TransactionCard extends StatelessWidget {
                   Text(
                     _formatDate(transaction.transactionDate),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
+                          color: AppTheme.textSecondary,
+                        ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
 
               // Invoice and Vehicle Info
@@ -78,50 +79,56 @@ class TransactionCard extends StatelessWidget {
                       children: [
                         Text(
                           'Invoice: ${transaction.invoiceNumber}',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimary,
+                                  ),
                         ),
                         const SizedBox(height: 4),
                         if (transaction.vehicle != null) ...[
                           Text(
                             transaction.vehicle!.displayName,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             '${transaction.vehicle!.color} • ${transaction.vehicle!.year}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                    ),
                           ),
                         ],
                       ],
                     ),
                   ),
-                  
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
                           _formatCurrency(transaction.amount),
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryColor,
+                                  ),
                         ),
                         if (transaction.paymentStatus != 'paid') ...[
                           const SizedBox(height: 4),
                           Text(
                             'Sisa: ${_formatCurrency(transaction.remainingAmount)}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.red,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                           ),
                         ],
                       ],
@@ -129,7 +136,7 @@ class TransactionCard extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
 
               // Customer/Source Info
@@ -145,21 +152,22 @@ class TransactionCard extends StatelessWidget {
                     child: Text(
                       _getSourceName(),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                            color: AppTheme.textSecondary,
+                          ),
                     ),
                   ),
                   Text(
                     transaction.paymentMethodDisplay,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
+                          color: AppTheme.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                 ],
               ),
 
-              if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
+              if (transaction.notes != null &&
+                  transaction.notes!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -178,9 +186,10 @@ class TransactionCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           transaction.notes!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -318,7 +327,7 @@ class TransactionCard extends StatelessWidget {
 
   String _formatCurrency(double amount) {
     final formatter = NumberFormat.currency(
-      locale: 'id_ID',
+      locale: 'en_US',
       symbol: 'Rp ',
       decimalDigits: 0,
     );
@@ -326,7 +335,7 @@ class TransactionCard extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    final formatter = DateFormat('dd MMM yyyy', 'id_ID');
+    final formatter = DateFormat('dd MMM yyyy');
     return formatter.format(date);
   }
 }

@@ -14,7 +14,7 @@ class VehicleFilterChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final filters = [
-      {'value': null, 'label': 'Semua', 'icon': Icons.view_grid},
+      {'value': null, 'label': 'Semua', 'icon': Icons.grid_view},
       {'value': 'available', 'label': 'Tersedia', 'icon': Icons.check_circle},
       {'value': 'sold', 'label': 'Terjual', 'icon': Icons.sell},
       {'value': 'in_repair', 'label': 'Perbaikan', 'icon': Icons.build},

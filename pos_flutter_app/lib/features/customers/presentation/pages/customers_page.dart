@@ -339,28 +339,3 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 }
 
-class CustomerDetailPage extends StatelessWidget {
-  final int customerId;
-  
-  const CustomerDetailPage({super.key, required this.customerId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Detail Customer')),
-      body: Center(child: Text('Customer Detail: $customerId')),
-    );
-  }
-}
-
-class AddCustomerPage extends StatelessWidget {
-  const AddCustomerPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Customer')),
-      body: const Center(child: Text('Add Customer Form')),
-    );
-  }
-}

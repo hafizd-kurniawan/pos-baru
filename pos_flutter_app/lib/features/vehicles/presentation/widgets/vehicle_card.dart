@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../../../core/models/vehicle.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class VehicleCard extends StatelessWidget {
   final Vehicle vehicle;
@@ -93,7 +94,7 @@ class VehicleCard extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 8),
 
               // Vehicle image placeholder
@@ -117,33 +118,34 @@ class VehicleCard extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 12),
 
               // Vehicle details
               Text(
                 vehicle.displayName,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
-                ),
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              
+
               const SizedBox(height: 4),
-              
+
               Text(
                 '${vehicle.color} • ${vehicle.transmissionType ?? 'Manual'}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
+                      color: AppTheme.textSecondary,
+                    ),
               ),
-              
+
               if (vehicle.licensePlate != null) ...[
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppTheme.backgroundColor,
                     borderRadius: BorderRadius.circular(4),
@@ -151,13 +153,13 @@ class VehicleCard extends StatelessWidget {
                   child: Text(
                     vehicle.licensePlate!,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.textSecondary,
-                    ),
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.textSecondary,
+                        ),
                   ),
                 ),
               ],
-              
+
               const Spacer(),
 
               // Price section
@@ -165,22 +167,22 @@ class VehicleCard extends StatelessWidget {
                 Text(
                   _formatCurrency(vehicle.sellingPrice!),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
                 ),
               ] else ...[
                 Text(
                   'Harga belum ditetapkan',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
-                    fontStyle: FontStyle.italic,
-                  ),
+                        color: AppTheme.textSecondary,
+                        fontStyle: FontStyle.italic,
+                      ),
                 ),
               ],
-              
+
               const SizedBox(height: 8),
-              
+
               // Additional info
               Row(
                 children: [
@@ -193,11 +195,11 @@ class VehicleCard extends StatelessWidget {
                   Text(
                     vehicle.year.toString(),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
+                          color: AppTheme.textSecondary,
+                        ),
                   ),
                   const Spacer(),
-                  if (vehicle.odometer != null) ...[
+                  ...[
                     Icon(
                       Icons.speed,
                       size: 12,
@@ -205,10 +207,10 @@ class VehicleCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${_formatNumber(vehicle.odometer!)} km',
+                      '${_formatNumber(vehicle.odometer)} km',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                            color: AppTheme.textSecondary,
+                          ),
                     ),
                   ],
                 ],
@@ -278,7 +280,7 @@ class VehicleCard extends StatelessWidget {
 
   String _formatCurrency(double amount) {
     final formatter = NumberFormat.currency(
-      locale: 'id_ID',
+      locale: 'en_US',
       symbol: 'Rp ',
       decimalDigits: 0,
     );
@@ -286,7 +288,7 @@ class VehicleCard extends StatelessWidget {
   }
 
   String _formatNumber(int number) {
-    final formatter = NumberFormat('#,###', 'id_ID');
+    final formatter = NumberFormat('#,###');
     return formatter.format(number);
   }
 }

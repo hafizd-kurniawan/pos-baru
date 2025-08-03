@@ -14,7 +14,11 @@ class AuthService {
       data: request.toJson(),
     );
 
-    final loginResponse = LoginResponse.fromJson(response.data);
+    // Handle backend response structure: {success, message, data}
+    final responseData = response.data;
+    final loginData = responseData['data'] ?? responseData;
+    
+    final loginResponse = LoginResponse.fromJson(loginData);
     
     // Save token and user data
     await StorageService.saveToken(loginResponse.token);
@@ -25,7 +29,12 @@ class AuthService {
 
   Future<User> getProfile() async {
     final response = await _apiClient.get(ApiEndpoints.profile);
-    return User.fromJson(response.data);
+    
+    // Handle backend response structure: {success, message, data}
+    final responseData = response.data;
+    final userData = responseData['data'] ?? responseData;
+    
+    return User.fromJson(userData);
   }
 
   Future<User> register(RegisterRequest request) async {
@@ -33,7 +42,12 @@ class AuthService {
       ApiEndpoints.register,
       data: request.toJson(),
     );
-    return User.fromJson(response.data);
+    
+    // Handle backend response structure: {success, message, data}
+    final responseData = response.data;
+    final userData = responseData['data'] ?? responseData;
+    
+    return User.fromJson(userData);
   }
 
   Future<void> changePassword(ChangePasswordRequest request) async {

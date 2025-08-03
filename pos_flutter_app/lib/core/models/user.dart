@@ -24,17 +24,27 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Handle role_name - it might come directly or from nested role object
+    String roleName;
+    if (json['role_name'] != null) {
+      roleName = json['role_name'] as String;
+    } else if (json['role'] != null && json['role']['name'] != null) {
+      roleName = json['role']['name'] as String;
+    } else {
+      roleName = 'Unknown'; // fallback
+    }
+
     return User(
-      id: json['id'],
-      username: json['username'],
-      email: json['email'],
-      fullName: json['full_name'],
-      phone: json['phone'],
-      roleId: json['role_id'],
-      roleName: json['role_name'],
-      isActive: json['is_active'] ?? true,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      id: (json['id'] as num).toInt(),
+      username: json['username'] as String,
+      email: json['email'] as String,
+      fullName: json['full_name'] as String,
+      phone: json['phone'] as String?,
+      roleId: (json['role_id'] as num).toInt(),
+      roleName: roleName,
+      isActive: json['is_active'] as bool? ?? true,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 

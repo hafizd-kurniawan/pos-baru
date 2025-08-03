@@ -1,8 +1,9 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../../../core/network/api_client.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/models/vehicle.dart';
+import '../../../../core/network/api_client.dart';
 
 // Events
 abstract class VehicleEvent extends Equatable {
@@ -161,7 +162,7 @@ class VehicleBloc extends Bloc<VehicleEvent, VehicleState> {
         'page': event.page,
         'limit': event.limit,
       };
-      
+
       if (event.status != null) {
         queryParams['status'] = event.status;
       }
@@ -172,15 +173,20 @@ class VehicleBloc extends Bloc<VehicleEvent, VehicleState> {
       );
 
       final data = response.data;
-      final vehiclesList = (data['data'] as List)
-          .map((json) => Vehicle.fromJson(json))
-          .toList();
+      final dataList = data['data'] as List?;
+      final vehiclesList = dataList != null
+          ? dataList.map((json) => Vehicle.fromJson(json)).toList()
+          : <Vehicle>[];
+
+      // Get meta information for pagination
+      final meta = data['meta'] as Map<String, dynamic>?;
 
       emit(VehiclesLoaded(
         vehicles: vehiclesList,
-        total: data['total'] ?? 0,
-        currentPage: data['page'] ?? 1,
-        hasMore: (data['page'] ?? 1) < (data['total_pages'] ?? 1),
+        total: meta?['total'] ?? data['total'] ?? 0,
+        currentPage: meta?['page'] ?? data['page'] ?? 1,
+        hasMore: (meta?['page'] ?? data['page'] ?? 1) <
+            (meta?['total_pages'] ?? data['total_pages'] ?? 1),
       ));
     } catch (e) {
       emit(VehicleError(message: e.toString()));
@@ -197,7 +203,11 @@ class VehicleBloc extends Bloc<VehicleEvent, VehicleState> {
         ApiEndpoints.vehicleById(event.vehicleId),
       );
 
-      final vehicle = Vehicle.fromJson(response.data);
+      // Handle backend response structure: {success, message, data}
+      final responseData = response.data;
+      final vehicleData = responseData['data'] ?? responseData;
+
+      final vehicle = Vehicle.fromJson(vehicleData);
       emit(VehicleDetailLoaded(vehicle: vehicle));
     } catch (e) {
       emit(VehicleError(message: e.toString()));
@@ -215,7 +225,8 @@ class VehicleBloc extends Bloc<VehicleEvent, VehicleState> {
         data: event.request.toJson(),
       );
 
-      emit(const VehicleOperationSuccess(message: 'Kendaraan berhasil ditambahkan'));
+      emit(const VehicleOperationSuccess(
+          message: 'Kendaraan berhasil ditambahkan'));
     } catch (e) {
       emit(VehicleError(message: e.toString()));
     }
@@ -232,7 +243,8 @@ class VehicleBloc extends Bloc<VehicleEvent, VehicleState> {
         data: event.request.toJson(),
       );
 
-      emit(const VehicleOperationSuccess(message: 'Kendaraan berhasil diperbarui'));
+      emit(const VehicleOperationSuccess(
+          message: 'Kendaraan berhasil diperbarui'));
     } catch (e) {
       emit(VehicleError(message: e.toString()));
     }
@@ -245,13 +257,14 @@ class VehicleBloc extends Bloc<VehicleEvent, VehicleState> {
     emit(VehicleLoading());
     try {
       final request = SetSellingPriceRequest(sellingPrice: event.sellingPrice);
-      
+
       await _apiClient.patch(
         ApiEndpoints.setVehicleSellingPrice(event.vehicleId),
         data: request.toJson(),
       );
 
-      emit(const VehicleOperationSuccess(message: 'Harga jual berhasil ditetapkan'));
+      emit(const VehicleOperationSuccess(
+          message: 'Harga jual berhasil ditetapkan'));
     } catch (e) {
       emit(VehicleError(message: e.toString()));
     }
@@ -267,7 +280,8 @@ class VehicleBloc extends Bloc<VehicleEvent, VehicleState> {
         ApiEndpoints.vehicleById(event.vehicleId),
       );
 
-      emit(const VehicleOperationSuccess(message: 'Kendaraan berhasil dihapus'));
+      emit(
+          const VehicleOperationSuccess(message: 'Kendaraan berhasil dihapus'));
     } catch (e) {
       emit(VehicleError(message: e.toString()));
     }

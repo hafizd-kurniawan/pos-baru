@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hafizd-kurniawan/pos-baru/internal/domain/models"
 	"github.com/hafizd-kurniawan/pos-baru/internal/repository"
@@ -20,6 +21,8 @@ type VehicleService interface {
 	MarkForRepair(id int) error
 	CompleteRepair(id int, repairCost float64) error
 	CalculateHPP(id int) error
+	SearchVehicles(page, limit int, filters models.VehicleSearchFilters) ([]models.Vehicle, int64, error)
+	GetAllBrands() ([]models.VehicleBrand, error)
 }
 
 type vehicleService struct {
@@ -33,15 +36,19 @@ func NewVehicleService(vehicleRepo repository.VehicleRepository) VehicleService 
 }
 
 func (s *vehicleService) Create(req *models.VehicleCreateRequest, createdBy int) (*models.Vehicle, error) {
-	// Generate unique vehicle code
+	// Generate unique vehicle code if not provided
 	if req.Code == "" {
-		req.Code = utils.GenerateCode("VHC")
+		code, err := s.generateUniqueVehicleCode()
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate vehicle code: %w", err)
+		}
+		req.Code = code
 	}
 
-	// Check if code already exists
+	// Double check if code already exists
 	existingVehicle, _ := s.vehicleRepo.GetByCode(req.Code)
 	if existingVehicle != nil {
-		return nil, fmt.Errorf("vehicle code already exists")
+		return nil, fmt.Errorf("vehicle code already exists: %s", req.Code)
 	}
 
 	// Create vehicle
@@ -57,7 +64,7 @@ func (s *vehicleService) Create(req *models.VehicleCreateRequest, createdBy int)
 		return nil, fmt.Errorf("failed to update HPP price: %w", err)
 	}
 
-	vehicle.HPPPrice = hpp
+	vehicle.HPPPrice = &hpp
 
 	return vehicle, nil
 }
@@ -235,7 +242,11 @@ func (s *vehicleService) CalculateHPP(id int) error {
 	}
 
 	// Calculate HPP = Purchase Price + Repair Cost
-	hpp := utils.CalculateHPP(vehicle.PurchasePrice, vehicle.RepairCost)
+	repairCost := float64(0)
+	if vehicle.RepairCost != nil {
+		repairCost = *vehicle.RepairCost
+	}
+	hpp := utils.CalculateHPP(vehicle.PurchasePrice, repairCost)
 
 	// Update HPP price
 	err = s.vehicleRepo.UpdateHPPPrice(id, hpp)
@@ -244,4 +255,36 @@ func (s *vehicleService) CalculateHPP(id int) error {
 	}
 
 	return nil
+}
+
+// generateUniqueVehicleCode generates a unique vehicle code in VEH001, VEH002, etc. format
+func (s *vehicleService) generateUniqueVehicleCode() (string, error) {
+	// Start with a simple sequential approach
+	for i := 1; i <= 9999; i++ {
+		code := fmt.Sprintf("VEH%03d", i)
+
+		// Check if code exists
+		existing, _ := s.vehicleRepo.GetByCode(code)
+		if existing == nil {
+			log.Printf("VehicleService.generateUniqueVehicleCode - Generated code: %s", code)
+			return code, nil
+		}
+	}
+
+	// If we somehow reach here, return error
+	return "", fmt.Errorf("unable to generate unique vehicle code: all codes 1-9999 are used")
+}
+
+func (s *vehicleService) SearchVehicles(page, limit int, filters models.VehicleSearchFilters) ([]models.Vehicle, int64, error) {
+	offset := (page - 1) * limit
+	vehicles, totalCount, err := s.vehicleRepo.SearchVehicles(offset, limit, filters)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to search vehicles: %w", err)
+	}
+
+	return vehicles, totalCount, nil
+}
+
+func (s *vehicleService) GetAllBrands() ([]models.VehicleBrand, error) {
+	return s.vehicleRepo.GetAllBrands()
 }

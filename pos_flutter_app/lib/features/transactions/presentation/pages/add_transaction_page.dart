@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/models/transaction.dart';
-import '../blocs/transaction_bloc.dart';
 import '../../../vehicles/presentation/widgets/form_section.dart';
 
 class AddTransactionPage extends StatefulWidget {
@@ -79,6 +76,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
           children: [
             FormSection(
               title: 'Informasi Transaksi Pembelian',
+              icon: Icons.shopping_cart,
               children: [
                 TextFormField(
                   controller: _descriptionController,
@@ -165,6 +163,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> with TickerProv
           children: [
             FormSection(
               title: 'Informasi Transaksi Penjualan',
+              icon: Icons.sell,
               children: [
                 TextFormField(
                   controller: _descriptionController,

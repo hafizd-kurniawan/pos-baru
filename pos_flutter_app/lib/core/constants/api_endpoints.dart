@@ -18,6 +18,10 @@ class ApiEndpoints {
   static String vehicleById(int id) => '/api/vehicles/$id';
   static String setVehicleSellingPrice(int id) => '/api/vehicles/$id/selling-price';
   
+  // Vehicle Type endpoints
+  static const String vehicleTypes = '/api/vehicle-types';
+  static String vehicleTypeById(int id) => '/api/vehicle-types/$id';
+  
   // Customer endpoints
   static const String customers = '/api/customers';
   static String customerById(int id) => '/api/customers/$id';

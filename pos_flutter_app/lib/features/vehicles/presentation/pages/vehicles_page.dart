@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/models/vehicle.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../blocs/vehicle_bloc.dart';
-import '../widgets/vehicle_card.dart';
+import '../widgets/enhanced_vehicle_card.dart';
 import '../widgets/vehicle_filter_chips.dart';
 
 class VehiclesPage extends StatefulWidget {
@@ -42,12 +43,12 @@ class _VehiclesPageState extends State<VehiclesPage> {
       _currentPage = 1;
       _vehicles.clear();
     }
-    
+
     context.read<VehicleBloc>().add(LoadVehicles(
-      page: _currentPage,
-      limit: 20,
-      status: selectedStatus,
-    ));
+          page: _currentPage,
+          limit: 20,
+          status: selectedStatus,
+        ));
   }
 
   void _onScroll() {
@@ -83,17 +84,18 @@ class _VehiclesPageState extends State<VehiclesPage> {
                   children: [
                     Text(
                       'Manajemen Kendaraan',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Kelola inventori kendaraan showroom',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                            color: AppTheme.textSecondary,
+                          ),
                     ),
                   ],
                 ),
@@ -104,7 +106,8 @@ class _VehiclesPageState extends State<VehiclesPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -135,10 +138,12 @@ class _VehiclesPageState extends State<VehiclesPage> {
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Cari kendaraan...',
-                      prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
+                      prefixIcon: const Icon(Icons.search,
+                          color: AppTheme.textSecondary),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
+                              icon: const Icon(Icons.clear,
+                                  color: AppTheme.textSecondary),
                               onPressed: () {
                                 _searchController.clear();
                                 _loadVehicles(refresh: true);
@@ -151,7 +156,8 @@ class _VehiclesPageState extends State<VehiclesPage> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                     ),
                     onSubmitted: (_) => _loadVehicles(refresh: true),
                   ),
@@ -192,7 +198,8 @@ class _VehiclesPageState extends State<VehiclesPage> {
                   if (state is VehicleLoading && _vehicles.isEmpty) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            AppTheme.primaryColor),
                       ),
                     );
                   }
@@ -216,7 +223,8 @@ class _VehiclesPageState extends State<VehiclesPage> {
                     child: GridView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.only(bottom: 16),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         childAspectRatio: 1.1,
                         crossAxisSpacing: 16,
@@ -227,17 +235,19 @@ class _VehiclesPageState extends State<VehiclesPage> {
                         if (index >= _vehicles.length) {
                           return const Center(
                             child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppTheme.primaryColor),
                             ),
                           );
                         }
 
                         final vehicle = _vehicles[index];
-                        return VehicleCard(
+                        return EnhancedVehicleCard(
                           vehicle: vehicle,
-                          onTap: () => context.push('${AppRoutes.vehicles}/${vehicle.id}'),
+                          onTap: () => _viewVehicleDetail(vehicle),
                           onEdit: () => _editVehicle(vehicle),
                           onDelete: () => _deleteVehicle(vehicle),
+                          onViewDetail: () => _viewVehicleDetail(vehicle),
                         );
                       },
                     ),
@@ -270,20 +280,22 @@ class _VehiclesPageState extends State<VehiclesPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            selectedStatus != null ? 'Tidak ada kendaraan dengan status ini' : 'Belum ada kendaraan',
+            selectedStatus != null
+                ? 'Tidak ada kendaraan dengan status ini'
+                : 'Belum ada kendaraan',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-            ),
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
-            selectedStatus != null 
+            selectedStatus != null
                 ? 'Coba ubah filter atau tambah kendaraan baru'
                 : 'Mulai dengan menambah kendaraan pertama',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+                  color: AppTheme.textSecondary,
+                ),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -304,11 +316,12 @@ class _VehiclesPageState extends State<VehiclesPage> {
     );
   }
 
+  void _viewVehicleDetail(Vehicle vehicle) {
+    context.push('${AppRoutes.vehicles}/${vehicle.id}');
+  }
+
   void _editVehicle(Vehicle vehicle) {
-    // TODO: Navigate to edit vehicle page
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit vehicle coming soon')),
-    );
+    context.push('${AppRoutes.vehicles}/${vehicle.id}/edit');
   }
 
   void _deleteVehicle(Vehicle vehicle) {
@@ -316,7 +329,8 @@ class _VehiclesPageState extends State<VehiclesPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Hapus Kendaraan'),
-        content: Text('Apakah Anda yakin ingin menghapus kendaraan ${vehicle.displayName}?'),
+        content: Text(
+            'Apakah Anda yakin ingin menghapus kendaraan ${vehicle.displayName}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -325,7 +339,9 @@ class _VehiclesPageState extends State<VehiclesPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.read<VehicleBloc>().add(DeleteVehicle(vehicleId: vehicle.id));
+              context
+                  .read<VehicleBloc>()
+                  .add(DeleteVehicle(vehicleId: vehicle.id));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

@@ -64,6 +64,15 @@ class SidebarWidget extends StatelessWidget {
                 ),
                 
                 _buildNavItem(
+                  icon: Icons.category_outlined,
+                  selectedIcon: Icons.category,
+                  title: 'Tipe Kendaraan',
+                  route: AppRoutes.vehicleTypes,
+                  isSelected: currentLocation?.startsWith('/vehicle-types') == true,
+                  context: context,
+                ),
+                
+                _buildNavItem(
                   icon: Icons.people_outline,
                   selectedIcon: Icons.people,
                   title: 'Customer',

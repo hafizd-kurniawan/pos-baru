@@ -35,7 +35,7 @@ func NewTransactionRepository(db *database.Database) TransactionRepository {
 func (r *transactionRepository) CreatePurchaseTransaction(req *models.PurchaseTransactionCreateRequest, processedBy int) (*models.PurchaseTransaction, error) {
 	// Generate invoice number
 	invoiceNumber := fmt.Sprintf("PUR%d%03d", time.Now().Unix(), req.VehicleID)
-	
+
 	query := `
 		INSERT INTO purchase_transactions (
 			invoice_number, transaction_date, source_type, source_id, vehicle_id, 
@@ -65,7 +65,10 @@ func (r *transactionRepository) CreateSalesTransaction(req *models.SalesTransact
 		return nil, fmt.Errorf("failed to get vehicle for transaction: %w", err)
 	}
 
-	hppPrice := vehicle.HPPPrice
+	hppPrice := float64(0)
+	if vehicle.HPPPrice != nil {
+		hppPrice = *vehicle.HPPPrice
+	}
 	profit := req.SellingPrice - hppPrice
 	remainingPayment := req.SellingPrice - req.DownPayment
 
@@ -418,7 +421,7 @@ func (r *transactionRepository) GetDailyTransactionSummary(date time.Time) (floa
 		SELECT COALESCE(SUM(purchase_price), 0) 
 		FROM purchase_transactions 
 		WHERE transaction_date = $1`
-	
+
 	err := r.db.Get(&purchaseTotal, purchaseQuery, date)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("failed to get daily purchase total: %w", err)
@@ -429,7 +432,7 @@ func (r *transactionRepository) GetDailyTransactionSummary(date time.Time) (floa
 		SELECT COALESCE(SUM(selling_price), 0), COALESCE(SUM(profit), 0)
 		FROM sales_transactions 
 		WHERE transaction_date = $1`
-	
+
 	err = r.db.QueryRow(salesQuery, date).Scan(&salesTotal, &profitTotal)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("failed to get daily sales total: %w", err)

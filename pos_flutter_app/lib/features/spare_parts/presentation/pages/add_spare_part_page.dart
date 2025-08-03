@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../blocs/spare_part_bloc.dart';
 import '../../../vehicles/presentation/widgets/form_section.dart';
 
 class AddSparePartPage extends StatefulWidget {
@@ -49,6 +47,7 @@ class _AddSparePartPageState extends State<AddSparePartPage> {
             children: [
               FormSection(
                 title: 'Informasi Spare Part',
+                icon: Icons.inventory,
                 children: [
                   TextFormField(
                     controller: _nameController,

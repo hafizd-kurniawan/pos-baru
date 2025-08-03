@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/network/api_client.dart';
 import 'core/storage/storage_service.dart';
 import 'shared/services/auth_service.dart';
+import 'shared/services/vehicle_type_service.dart';
 import 'features/auth/presentation/blocs/auth_bloc.dart';
 import 'features/dashboard/presentation/blocs/dashboard_bloc.dart';
 import 'features/vehicles/presentation/blocs/vehicle_bloc.dart';
+import 'features/vehicle_types/presentation/blocs/vehicle_type_bloc.dart';
 import 'features/customers/presentation/blocs/customer_bloc.dart';
 import 'features/transactions/presentation/blocs/transaction_bloc.dart';
 import 'features/spare_parts/presentation/blocs/spare_part_bloc.dart';
@@ -42,6 +43,11 @@ class POSApp extends StatelessWidget {
             apiClient: context.read<ApiClient>(),
           ),
         ),
+        Provider<VehicleTypeService>(
+          create: (context) => VehicleTypeService(
+            apiClient: context.read<ApiClient>(),
+          ),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -58,6 +64,11 @@ class POSApp extends StatelessWidget {
           BlocProvider(
             create: (context) => VehicleBloc(
               apiClient: context.read<ApiClient>(),
+            ),
+          ),
+          BlocProvider(
+            create: (context) => VehicleTypeBloc(
+              vehicleTypeService: context.read<VehicleTypeService>(),
             ),
           ),
           BlocProvider(

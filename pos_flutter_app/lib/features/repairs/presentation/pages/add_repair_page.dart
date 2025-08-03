@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../blocs/repair_bloc.dart';
 import '../../../vehicles/presentation/widgets/form_section.dart';
 
 class AddRepairPage extends StatefulWidget {
@@ -47,6 +45,7 @@ class _AddRepairPageState extends State<AddRepairPage> {
             children: [
               FormSection(
                 title: 'Informasi Repair',
+                icon: Icons.build,
                 children: [
                   TextFormField(
                     controller: _descriptionController,

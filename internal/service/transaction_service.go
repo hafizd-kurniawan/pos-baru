@@ -82,8 +82,12 @@ func (s *transactionService) CreateSalesTransaction(req *models.SalesTransaction
 	}
 
 	// Validate selling price is reasonable (at least HPP)
-	if req.SellingPrice < vehicle.HPPPrice {
-		return nil, fmt.Errorf("selling price cannot be less than HPP (%.2f)", vehicle.HPPPrice)
+	hppPrice := float64(0)
+	if vehicle.HPPPrice != nil {
+		hppPrice = *vehicle.HPPPrice
+	}
+	if req.SellingPrice < hppPrice {
+		return nil, fmt.Errorf("selling price cannot be less than HPP (%.2f)", hppPrice)
 	}
 
 	// Create transaction

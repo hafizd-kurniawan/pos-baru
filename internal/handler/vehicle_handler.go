@@ -358,3 +358,88 @@ func (h *VehicleHandler) SetSellingPrice(c *gin.Context) {
 
 	utils.SendSuccess(c, "Selling price updated successfully", nil)
 }
+
+// SearchVehicles godoc
+// @Summary Search vehicles with advanced filters
+// @Description Search vehicles by brand, model, year, color, odometer, etc.
+// @Tags vehicles
+// @Produce json
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(10)
+// @Param brand_id query int false "Filter by brand ID"
+// @Param model query string false "Filter by model (partial match)"
+// @Param year_min query int false "Minimum year"
+// @Param year_max query int false "Maximum year"
+// @Param color query string false "Filter by color"
+// @Param odometer_min query int false "Minimum odometer"
+// @Param odometer_max query int false "Maximum odometer"
+// @Param price_min query float64 false "Minimum price"
+// @Param price_max query float64 false "Maximum price"
+// @Param status query string false "Filter by status"
+// @Success 200 {object} utils.APIResponse{data=[]models.Vehicle}
+// @Security BearerAuth
+// @Router /api/vehicles/search [get]
+func (h *VehicleHandler) SearchVehicles(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	// Parse search filters
+	filters := models.VehicleSearchFilters{
+		BrandID:     parseIntQuery(c, "brand_id"),
+		Model:       c.Query("model"),
+		YearMin:     parseIntQuery(c, "year_min"),
+		YearMax:     parseIntQuery(c, "year_max"),
+		Color:       c.Query("color"),
+		OdometerMin: parseIntQuery(c, "odometer_min"),
+		OdometerMax: parseIntQuery(c, "odometer_max"),
+		PriceMin:    parseFloatQuery(c, "price_min"),
+		PriceMax:    parseFloatQuery(c, "price_max"),
+		Status:      c.Query("status"),
+	}
+
+	vehicles, total, err := h.vehicleService.SearchVehicles(page, limit, filters)
+	if err != nil {
+		utils.SendInternalServerError(c, "Failed to search vehicles", err.Error())
+		return
+	}
+
+	meta := utils.CalculatePaginationMeta(page, limit, total)
+	utils.SendSuccessWithMeta(c, "Vehicles search completed successfully", vehicles, meta)
+}
+
+// GetVehicleBrands godoc
+// @Summary Get all vehicle brands for dropdown
+// @Description Get all available vehicle brands for search filters
+// @Tags vehicles
+// @Produce json
+// @Success 200 {object} utils.APIResponse{data=[]models.VehicleBrand}
+// @Security BearerAuth
+// @Router /api/vehicles/brands [get]
+func (h *VehicleHandler) GetVehicleBrands(c *gin.Context) {
+	brands, err := h.vehicleService.GetAllBrands()
+	if err != nil {
+		utils.SendInternalServerError(c, "Failed to retrieve vehicle brands", err.Error())
+		return
+	}
+
+	utils.SendSuccess(c, "Vehicle brands retrieved successfully", brands)
+}
+
+// Helper functions for parsing query parameters
+func parseIntQuery(c *gin.Context, key string) *int {
+	if val := c.Query(key); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil {
+			return &parsed
+		}
+	}
+	return nil
+}
+
+func parseFloatQuery(c *gin.Context, key string) *float64 {
+	if val := c.Query(key); val != "" {
+		if parsed, err := strconv.ParseFloat(val, 64); err == nil {
+			return &parsed
+		}
+	}
+	return nil
+}
