@@ -8,12 +8,14 @@ class TransactionCard extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback? onTap;
   final VoidCallback? onUpdatePayment;
+  final VoidCallback? onPrint;
 
   const TransactionCard({
     super.key,
     required this.transaction,
     this.onTap,
     this.onUpdatePayment,
+    this.onPrint,
   });
 
   @override
@@ -199,25 +201,46 @@ class TransactionCard extends StatelessWidget {
                 ),
               ],
 
-              // Action Button for incomplete payments
-              if (transaction.paymentStatus != 'paid') ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: onUpdatePayment,
-                    icon: const Icon(Icons.payment, size: 16),
-                    label: const Text('Update Pembayaran'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primaryColor,
-                      side: const BorderSide(color: AppTheme.primaryColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+              // Action Buttons
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  // Print Button
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onPrint,
+                      icon: const Icon(Icons.print, size: 16),
+                      label: const Text('Print'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.blue,
+                        side: const BorderSide(color: Colors.blue),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+
+                  // Update Payment Button (only for incomplete payments)
+                  if (transaction.paymentStatus != 'paid') ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onUpdatePayment,
+                        icon: const Icon(Icons.payment, size: 16),
+                        label: const Text('Update'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.primaryColor,
+                          side: const BorderSide(color: AppTheme.primaryColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),

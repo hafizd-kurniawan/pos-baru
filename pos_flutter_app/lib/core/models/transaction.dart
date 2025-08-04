@@ -1,5 +1,5 @@
-import 'vehicle.dart';
 import 'customer.dart';
+import 'vehicle.dart';
 
 class Transaction {
   final int id;
@@ -49,28 +49,68 @@ class Transaction {
   });
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
+    // Determine transaction type and map fields accordingly
+    String transactionType;
+    double amount;
+    double paidAmount;
+    double remainingAmount;
+
+    // Check if this is a purchase or sales transaction based on available fields
+    if (json.containsKey('purchase_price')) {
+      // This is a purchase transaction
+      transactionType = 'purchase';
+      amount = (json['purchase_price'] as num?)?.toDouble() ?? 0.0;
+      paidAmount = amount; // For now, assume full payment
+      remainingAmount = 0.0;
+    } else {
+      // This is a sales transaction
+      transactionType = 'sales';
+      amount = (json['selling_price'] as num?)?.toDouble() ?? 0.0;
+      double downPayment = (json['down_payment'] as num?)?.toDouble() ?? 0.0;
+      remainingAmount = (json['remaining_payment'] as num?)?.toDouble() ?? 0.0;
+
+      // Calculate paid amount based on payment status
+      String paymentStatus = json['payment_status'] ?? 'pending';
+      if (paymentStatus == 'paid') {
+        paidAmount = amount; // Fully paid
+      } else if (paymentStatus == 'partial') {
+        paidAmount = downPayment;
+      } else {
+        paidAmount = 0.0; // Pending payment
+      }
+    }
+
     return Transaction(
-      id: json['id'],
-      invoiceNumber: json['invoice_number'],
-      type: json['type'],
-      vehicleId: json['vehicle_id'],
-      vehicle: json['vehicle'] != null ? Vehicle.fromJson(json['vehicle']) : null,
+      id: json['id'] ?? 0,
+      invoiceNumber: json['invoice_number'] ?? '',
+      type: transactionType,
+      vehicleId: json['vehicle_id'] ?? 0,
+      vehicle:
+          json['vehicle'] != null ? Vehicle.fromJson(json['vehicle']) : null,
       customerId: json['customer_id'],
-      customer: json['customer'] != null ? Customer.fromJson(json['customer']) : null,
+      customer:
+          json['customer'] != null ? Customer.fromJson(json['customer']) : null,
       supplierId: json['supplier_id'],
       supplierName: json['supplier_name'],
-      sourceType: json['source_type'],
-      sourceId: json['source_id'],
+      sourceType: json['source_type'] ??
+          (transactionType == 'purchase' ? 'supplier' : 'customer'),
+      sourceId: json['source_id'] ?? json['customer_id'] ?? json['supplier_id'],
       sourceName: json['source_name'],
-      amount: (json['amount'] as num).toDouble(),
-      paidAmount: (json['paid_amount'] as num).toDouble(),
-      remainingAmount: (json['remaining_amount'] as num).toDouble(),
-      paymentMethod: json['payment_method'],
-      paymentStatus: json['payment_status'],
+      amount: amount,
+      paidAmount: paidAmount,
+      remainingAmount: remainingAmount,
+      paymentMethod: json['payment_method'] ?? '',
+      paymentStatus: json['payment_status'] ?? 'pending',
       notes: json['notes'],
-      transactionDate: DateTime.parse(json['transaction_date']),
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      transactionDate: json['transaction_date'] != null
+          ? DateTime.parse(json['transaction_date'])
+          : DateTime.now(),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : DateTime.now(),
     );
   }
 

@@ -1,8 +1,9 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../../../core/network/api_client.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/models/transaction.dart';
+import '../../../../core/network/api_client.dart';
 
 // Events
 abstract class TransactionEvent extends Equatable {
@@ -153,49 +154,134 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   ) async {
     emit(TransactionLoading());
     try {
-      // Determine which endpoint to use based on type
-      String endpoint;
+      List<Transaction> allTransactions = [];
+      int totalCount = 0;
+      int currentPage = event.page;
+      bool hasMore = false;
+
       if (event.type == 'purchase') {
-        endpoint = ApiEndpoints.purchaseTransactions;
+        // Load only purchase transactions
+        final result = await _loadPurchaseTransactions(event);
+        allTransactions = result['transactions'];
+        totalCount = result['total'];
+        hasMore = result['hasMore'];
       } else if (event.type == 'sales') {
-        endpoint = ApiEndpoints.salesTransactions;
+        // Load only sales transactions
+        final result = await _loadSalesTransactions(event);
+        allTransactions = result['transactions'];
+        totalCount = result['total'];
+        hasMore = result['hasMore'];
       } else {
-        // Load both types - we'll need to combine them
-        // For now, let's load purchase transactions as default
-        endpoint = ApiEndpoints.purchaseTransactions;
-      }
+        // Load both types - start with sales first since we have data there
+        final salesResult = await _loadSalesTransactions(event);
+        allTransactions.addAll(salesResult['transactions']);
+        totalCount += (salesResult['total'] as num).toInt();
 
-      final queryParams = <String, dynamic>{
-        'page': event.page,
-        'limit': event.limit,
-      };
-      
-      if (event.dateFrom != null) {
-        queryParams['date_from'] = event.dateFrom;
-      }
-      if (event.dateTo != null) {
-        queryParams['date_to'] = event.dateTo;
-      }
+        // Also try to load purchase transactions
+        try {
+          final purchaseResult = await _loadPurchaseTransactions(event);
+          allTransactions.addAll(purchaseResult['transactions']);
+          totalCount += (purchaseResult['total'] as num).toInt();
+        } catch (e) {
+          print('⚠️ Could not load purchase transactions: $e');
+        }
 
-      final response = await _apiClient.get(
-        endpoint,
-        queryParameters: queryParams,
-      );
-
-      final data = response.data;
-      final transactionsList = (data['data'] as List)
-          .map((json) => Transaction.fromJson(json))
-          .toList();
+        // Sort by date descending
+        allTransactions
+            .sort((a, b) => b.transactionDate.compareTo(a.transactionDate));
+        hasMore = false; // For combined view, disable pagination for now
+      }
 
       emit(TransactionsLoaded(
-        transactions: transactionsList,
-        total: data['total'] ?? 0,
-        currentPage: data['page'] ?? 1,
-        hasMore: (data['page'] ?? 1) < (data['total_pages'] ?? 1),
+        transactions: allTransactions,
+        total: totalCount,
+        currentPage: currentPage,
+        hasMore: hasMore,
       ));
     } catch (e) {
+      print('❌ Load transactions error: $e');
       emit(TransactionError(message: e.toString()));
     }
+  }
+
+  Future<Map<String, dynamic>> _loadSalesTransactions(
+      LoadTransactions event) async {
+    final queryParams = <String, dynamic>{
+      'page': event.page,
+      'limit': event.limit,
+    };
+
+    if (event.dateFrom != null) {
+      queryParams['date_from'] = event.dateFrom;
+    }
+    if (event.dateTo != null) {
+      queryParams['date_to'] = event.dateTo;
+    }
+
+    final response = await _apiClient.get(
+      ApiEndpoints.salesTransactions,
+      queryParameters: queryParams,
+    );
+
+    final data = response.data;
+    print('🔍 Sales Transaction Response: $data');
+
+    final responseData = data['data'];
+    final transactionsData = responseData['transactions'];
+    final transactionsList = transactionsData != null
+        ? (transactionsData as List)
+            .map((json) => Transaction.fromJson(json))
+            .toList()
+        : <Transaction>[];
+
+    final pagination = responseData['pagination'];
+
+    return {
+      'transactions': transactionsList,
+      'total': pagination['total'] ?? 0,
+      'hasMore':
+          (pagination['current_page'] ?? 1) < (pagination['total_pages'] ?? 1),
+    };
+  }
+
+  Future<Map<String, dynamic>> _loadPurchaseTransactions(
+      LoadTransactions event) async {
+    final queryParams = <String, dynamic>{
+      'page': event.page,
+      'limit': event.limit,
+    };
+
+    if (event.dateFrom != null) {
+      queryParams['date_from'] = event.dateFrom;
+    }
+    if (event.dateTo != null) {
+      queryParams['date_to'] = event.dateTo;
+    }
+
+    final response = await _apiClient.get(
+      ApiEndpoints.purchaseTransactions,
+      queryParameters: queryParams,
+    );
+
+    final data = response.data;
+    print('🔍 Purchase Transaction Response: $data');
+
+    final responseData = data['data'];
+    final transactionsData = responseData['transactions'];
+    final transactionsList = transactionsData != null
+        ? (transactionsData as List)
+            .map((json) => Transaction.fromJson(json))
+            .toList()
+        : <Transaction>[];
+
+    final pagination = responseData['pagination'];
+
+    return {
+      'transactions': transactionsList,
+      'total': pagination['total'] ?? 0,
+      'hasMore':
+          (pagination['current_page'] ?? 1) < (pagination['total_pages'] ?? 1),
+    };
   }
 
   Future<void> _onLoadTransactionDetail(
@@ -212,9 +298,28 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       }
 
       final response = await _apiClient.get(endpoint);
-      final transaction = Transaction.fromJson(response.data);
+      final data = response.data;
+      print('🔍 Transaction Detail Response: $data');
+
+      // Handle response structure - data is nested under 'data.transaction'
+      Map<String, dynamic> transactionData;
+      if (data['data'] != null && data['data']['transaction'] != null) {
+        transactionData = data['data']['transaction'];
+      } else if (data['data'] != null) {
+        transactionData = data['data'];
+      } else {
+        // Fallback to using the data directly
+        transactionData = data;
+      }
+
+      print('🔍 Parsed transaction data: $transactionData');
+      final transaction = Transaction.fromJson(transactionData);
+      print(
+          '🔍 Created Transaction object: ID=${transaction.id}, Invoice=${transaction.invoiceNumber}');
+
       emit(TransactionDetailLoaded(transaction: transaction));
     } catch (e) {
+      print('❌ Load transaction detail error: $e');
       emit(TransactionError(message: e.toString()));
     }
   }
@@ -230,7 +335,8 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         data: event.request.toJson(),
       );
 
-      emit(const TransactionOperationSuccess(message: 'Transaksi pembelian berhasil dibuat'));
+      emit(const TransactionOperationSuccess(
+          message: 'Transaksi pembelian berhasil dibuat'));
     } catch (e) {
       emit(TransactionError(message: e.toString()));
     }
@@ -247,7 +353,8 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         data: event.request.toJson(),
       );
 
-      emit(const TransactionOperationSuccess(message: 'Transaksi penjualan berhasil dibuat'));
+      emit(const TransactionOperationSuccess(
+          message: 'Transaksi penjualan berhasil dibuat'));
     } catch (e) {
       emit(TransactionError(message: e.toString()));
     }
@@ -271,7 +378,8 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         data: event.request.toJson(),
       );
 
-      emit(const TransactionOperationSuccess(message: 'Pembayaran berhasil diperbarui'));
+      emit(const TransactionOperationSuccess(
+          message: 'Pembayaran berhasil diperbarui'));
     } catch (e) {
       emit(TransactionError(message: e.toString()));
     }

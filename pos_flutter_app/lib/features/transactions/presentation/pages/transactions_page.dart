@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/models/transaction.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../blocs/transaction_bloc.dart';
+import '../services/transaction_service.dart';
 import '../widgets/transaction_card.dart';
+import 'transaction_detail_page.dart';
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -14,9 +17,11 @@ class TransactionsPage extends StatefulWidget {
   State<TransactionsPage> createState() => _TransactionsPageState();
 }
 
-class _TransactionsPageState extends State<TransactionsPage> with TickerProviderStateMixin {
+class _TransactionsPageState extends State<TransactionsPage>
+    with TickerProviderStateMixin {
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
+  late TransactionService _transactionService;
   bool _hasMore = true;
   int _currentPage = 1;
   List<Transaction> _transactions = [];
@@ -27,6 +32,7 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
   @override
   void initState() {
     super.initState();
+    _transactionService = TransactionService();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
     _loadTransactions();
@@ -42,7 +48,7 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    
+
     switch (_tabController.index) {
       case 0:
         _selectedType = null;
@@ -62,14 +68,14 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
       _currentPage = 1;
       _transactions.clear();
     }
-    
+
     context.read<TransactionBloc>().add(LoadTransactions(
-      page: _currentPage,
-      limit: 20,
-      type: _selectedType,
-      dateFrom: _dateFrom,
-      dateTo: _dateTo,
-    ));
+          page: _currentPage,
+          limit: 20,
+          type: _selectedType,
+          dateFrom: _dateFrom,
+          dateTo: _dateTo,
+        ));
   }
 
   void _onScroll() {
@@ -98,17 +104,18 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
                   children: [
                     Text(
                       'Manajemen Transaksi',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Kelola transaksi pembelian dan penjualan',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                            color: AppTheme.textSecondary,
+                          ),
                     ),
                   ],
                 ),
@@ -119,7 +126,8 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -169,7 +177,7 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Date Filters
                   Row(
                     children: [
@@ -226,7 +234,8 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
                   if (state is TransactionLoading && _transactions.isEmpty) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            AppTheme.primaryColor),
                       ),
                     );
                   }
@@ -257,7 +266,8 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
                             child: Padding(
                               padding: EdgeInsets.all(16),
                               child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppTheme.primaryColor),
                               ),
                             ),
                           );
@@ -270,6 +280,7 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
                             transaction: transaction,
                             onTap: () => _viewTransactionDetail(transaction),
                             onUpdatePayment: () => _updatePayment(transaction),
+                            onPrint: () => _printInvoice(transaction),
                           ),
                         );
                       },
@@ -300,7 +311,8 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       controller: TextEditingController(text: value),
       onTap: () async {
@@ -311,7 +323,8 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
           lastDate: DateTime.now(),
         );
         if (date != null) {
-          final formattedDate = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+          final formattedDate =
+              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
           onChanged(formattedDate);
         }
       },
@@ -339,16 +352,16 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
           Text(
             'Belum ada transaksi',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-            ),
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Mulai dengan membuat transaksi pertama',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+                  color: AppTheme.textSecondary,
+                ),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -370,9 +383,10 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
   }
 
   void _viewTransactionDetail(Transaction transaction) {
-    // TODO: Navigate to transaction detail page
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Detail transaksi coming soon')),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TransactionDetailPage(transaction: transaction),
+      ),
     );
   }
 
@@ -382,5 +396,36 @@ class _TransactionsPageState extends State<TransactionsPage> with TickerProvider
       const SnackBar(content: Text('Update pembayaran coming soon')),
     );
   }
-}
 
+  void _printInvoice(Transaction transaction) async {
+    try {
+      await _transactionService.printInvoice(transaction.id, transaction.type);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Invoice berhasil "dicetak" (Mock Print)'),
+            ],
+          ),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Gagal print invoice: $e'),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}

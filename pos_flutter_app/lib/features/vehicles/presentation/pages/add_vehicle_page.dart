@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../../../core/models/vehicle.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../blocs/vehicle_bloc.dart';
 import '../widgets/form_section.dart';
 
@@ -16,7 +17,7 @@ class AddVehiclePage extends StatefulWidget {
 
 class _AddVehiclePageState extends State<AddVehiclePage> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Form controllers
   final _codeController = TextEditingController();
   final _modelController = TextEditingController();
@@ -24,6 +25,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   final _colorController = TextEditingController();
   final _engineCapacityController = TextEditingController();
   final _licensePlateController = TextEditingController();
+  final _chassisNumberController = TextEditingController();
+  final _engineNumberController = TextEditingController();
   final _odometerController = TextEditingController();
   final _purchasePriceController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -52,6 +55,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     _colorController.dispose();
     _engineCapacityController.dispose();
     _licensePlateController.dispose();
+    _chassisNumberController.dispose();
+    _engineNumberController.dispose();
     _odometerController.dispose();
     _purchasePriceController.dispose();
     _descriptionController.dispose();
@@ -60,7 +65,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
 
   void _generateVehicleCode() {
     final now = DateTime.now();
-    final code = 'VHC${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}${now.millisecondsSinceEpoch.toString().substring(10)}';
+    final code =
+        'VHC${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}${now.millisecondsSinceEpoch.toString().substring(10)}';
     _codeController.text = code;
   }
 
@@ -138,7 +144,9 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                       label: 'Kode Kendaraan',
                       hint: 'VHC20240101001',
                       readOnly: true,
-                      validator: (value) => value?.isEmpty == true ? 'Kode kendaraan harus diisi' : null,
+                      validator: (value) => value?.isEmpty == true
+                          ? 'Kode kendaraan harus diisi'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     _buildBrandDropdown(),
@@ -147,7 +155,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                       controller: _modelController,
                       label: 'Model',
                       hint: 'Beat, Vario, PCX',
-                      validator: (value) => value?.isEmpty == true ? 'Model harus diisi' : null,
+                      validator: (value) =>
+                          value?.isEmpty == true ? 'Model harus diisi' : null,
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -163,9 +172,12 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                               LengthLimitingTextInputFormatter(4),
                             ],
                             validator: (value) {
-                              if (value?.isEmpty == true) return 'Tahun harus diisi';
+                              if (value?.isEmpty == true)
+                                return 'Tahun harus diisi';
                               final year = int.tryParse(value!);
-                              if (year == null || year < 1900 || year > DateTime.now().year + 1) {
+                              if (year == null ||
+                                  year < 1900 ||
+                                  year > DateTime.now().year + 1) {
                                 return 'Tahun tidak valid';
                               }
                               return null;
@@ -178,7 +190,9 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                             controller: _colorController,
                             label: 'Warna',
                             hint: 'Merah, Biru, Hitam',
-                            validator: (value) => value?.isEmpty == true ? 'Warna harus diisi' : null,
+                            validator: (value) => value?.isEmpty == true
+                                ? 'Warna harus diisi'
+                                : null,
                           ),
                         ),
                       ],
@@ -240,7 +254,29 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                             label: 'Odometer (km)',
                             hint: '15000',
                             keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextFormField(
+                            controller: _chassisNumberController,
+                            label: 'Nomor Rangka',
+                            hint: 'CHS1234567890',
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildTextFormField(
+                            controller: _engineNumberController,
+                            label: 'Nomor Mesin',
+                            hint: 'ENG1234567890',
                           ),
                         ),
                       ],
@@ -264,9 +300,11 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: (value) {
-                        if (value?.isEmpty == true) return 'Harga beli harus diisi';
+                        if (value?.isEmpty == true)
+                          return 'Harga beli harus diisi';
                         final price = double.tryParse(value!);
-                        if (price == null || price <= 0) return 'Harga beli tidak valid';
+                        if (price == null || price <= 0)
+                          return 'Harga beli tidak valid';
                         return null;
                       },
                     ),
@@ -310,7 +348,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Text(
@@ -368,7 +407,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }
@@ -400,7 +440,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppTheme.primaryColor),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       items: brands.map((brand) {
         return DropdownMenuItem<int>(
@@ -432,7 +473,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppTheme.primaryColor),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       items: const [
         DropdownMenuItem(value: 'Bensin', child: Text('Bensin')),
@@ -463,7 +505,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppTheme.primaryColor),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       items: const [
         DropdownMenuItem(value: 'Manual', child: Text('Manual')),
@@ -493,7 +536,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppTheme.primaryColor),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       items: const [
         DropdownMenuItem(value: 'excellent', child: Text('Sangat Baik')),
@@ -524,7 +568,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppTheme.primaryColor),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
       items: const [
         DropdownMenuItem(value: 'customer', child: Text('Customer')),
@@ -545,16 +590,30 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       model: _modelController.text,
       year: int.parse(_yearController.text),
       color: _colorController.text,
-      engineCapacity: _engineCapacityController.text.isNotEmpty ? _engineCapacityController.text : null,
+      engineCapacity: _engineCapacityController.text.isNotEmpty
+          ? _engineCapacityController.text
+          : null,
       fuelType: _selectedFuelType,
       transmissionType: _selectedTransmissionType,
-      licensePlate: _licensePlateController.text.isNotEmpty ? _licensePlateController.text : null,
-      odometer: _odometerController.text.isNotEmpty ? int.parse(_odometerController.text) : null,
+      licensePlate: _licensePlateController.text.isNotEmpty
+          ? _licensePlateController.text
+          : null,
+      chassisNumber: _chassisNumberController.text.isNotEmpty
+          ? _chassisNumberController.text
+          : null,
+      engineNumber: _engineNumberController.text.isNotEmpty
+          ? _engineNumberController.text
+          : null,
+      odometer: _odometerController.text.isNotEmpty
+          ? int.parse(_odometerController.text)
+          : null,
       sourceType: _selectedSourceType,
       sourceId: _selectedSourceId,
       purchasePrice: double.parse(_purchasePriceController.text),
       conditionStatus: _selectedConditionStatus,
-      description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
+      description: _descriptionController.text.isNotEmpty
+          ? _descriptionController.text
+          : null,
     );
 
     context.read<VehicleBloc>().add(CreateVehicle(request: request));
