@@ -16,21 +16,21 @@ type RepairService interface {
 	UpdateRepairOrder(id int, request *models.RepairOrderUpdateRequest) error
 	UpdateRepairProgress(id int, request *models.RepairProgressUpdateRequest) error
 	DeleteRepairOrder(id int) error
-	
+
 	// Spare parts management
 	AddSparePartToRepair(repairID int, request *models.RepairSparePartCreateRequest) error
 	RemoveSparePartFromRepair(repairID int, sparePartID int) error
 	GetRepairSpareParts(repairID int) ([]models.RepairSparePart, error)
-	
+
 	// Statistics and reporting
 	GetRepairStats(mechanicID *int, dateFrom, dateTo *time.Time) (map[string]interface{}, error)
 	GetMechanicWorkload() ([]map[string]interface{}, error)
 }
 
 type repairService struct {
-	repairRepo   repository.RepairRepository
-	vehicleRepo  repository.VehicleRepository
-	userRepo     repository.UserRepository
+	repairRepo    repository.RepairRepository
+	vehicleRepo   repository.VehicleRepository
+	userRepo      repository.UserRepository
 	sparePartRepo repository.SparePartRepository
 }
 
@@ -49,25 +49,25 @@ func (s *repairService) CreateRepairOrder(request *models.RepairOrderCreateReque
 	if err != nil {
 		return nil, fmt.Errorf("vehicle not found: %v", err)
 	}
-	
+
 	// Check if vehicle can be repaired
 	if vehicle.Status == models.VehicleStatusSold {
 		return nil, fmt.Errorf("cannot repair sold vehicle")
 	}
-	
+
 	// Validate mechanic exists and has correct role
 	mechanic, err := s.userRepo.GetByID(request.MechanicID)
 	if err != nil {
 		return nil, fmt.Errorf("mechanic not found: %v", err)
 	}
-	
+
 	if mechanic.RoleID != 3 { // Assuming role_id 3 is mechanic
 		return nil, fmt.Errorf("assigned user is not a mechanic")
 	}
-	
+
 	// Generate repair order code
 	code := s.generateRepairCode()
-	
+
 	// Create repair order
 	repair := &models.RepairOrder{
 		Code:          code,
@@ -79,18 +79,18 @@ func (s *repairService) CreateRepairOrder(request *models.RepairOrderCreateReque
 		Status:        models.RepairStatusPending,
 		Notes:         request.Notes,
 	}
-	
+
 	err = s.repairRepo.Create(repair)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create repair order: %v", err)
 	}
-	
+
 	// Update vehicle status to in_repair
-	err = s.vehicleRepo.UpdateStatus(request.VehicleID, models.VehicleStatusInRepair)
+	err = s.vehicleRepo.UpdateStatus(request.VehicleID, string(models.VehicleStatusInRepair))
 	if err != nil {
 		return nil, fmt.Errorf("failed to update vehicle status: %v", err)
 	}
-	
+
 	// Get complete repair order with relationships
 	return s.repairRepo.GetByID(repair.ID)
 }
@@ -110,7 +110,7 @@ func (s *repairService) ListRepairOrders(filter models.RepairOrderFilter, page, 
 	if limit <= 0 || limit > 100 {
 		limit = 10
 	}
-	
+
 	return s.repairRepo.List(filter, page, limit)
 }
 
@@ -120,7 +120,7 @@ func (s *repairService) UpdateRepairOrder(id int, request *models.RepairOrderUpd
 	if err != nil {
 		return fmt.Errorf("repair order not found: %v", err)
 	}
-	
+
 	// Validate status transition if status is being updated
 	if request.Status != nil {
 		err = s.validateStatusTransition(repair.Status, *request.Status)
@@ -128,7 +128,7 @@ func (s *repairService) UpdateRepairOrder(id int, request *models.RepairOrderUpd
 			return err
 		}
 	}
-	
+
 	return s.repairRepo.Update(id, request)
 }
 
@@ -138,25 +138,25 @@ func (s *repairService) UpdateRepairProgress(id int, request *models.RepairProgr
 	if err != nil {
 		return fmt.Errorf("repair order not found: %v", err)
 	}
-	
+
 	// Validate status transition
 	err = s.validateStatusTransition(repair.Status, request.Status)
 	if err != nil {
 		return err
 	}
-	
+
 	// Update repair progress
 	err = s.repairRepo.UpdateProgress(id, request)
 	if err != nil {
 		return fmt.Errorf("failed to update repair progress: %v", err)
 	}
-	
+
 	// Update vehicle status based on repair status
 	var vehicleStatus models.VehicleStatus
 	switch request.Status {
 	case models.RepairStatusCompleted:
 		vehicleStatus = models.VehicleStatusAvailable
-		
+
 		// Update vehicle repair cost
 		if request.ActualCost != nil {
 			err = s.vehicleRepo.UpdateRepairCost(repair.VehicleID, *request.ActualCost)
@@ -164,23 +164,23 @@ func (s *repairService) UpdateRepairProgress(id int, request *models.RepairProgr
 				return fmt.Errorf("failed to update vehicle repair cost: %v", err)
 			}
 		}
-		
+
 	case models.RepairStatusCancelled:
 		vehicleStatus = models.VehicleStatusAvailable
-		
+
 	case models.RepairStatusInProgress:
 		vehicleStatus = models.VehicleStatusInRepair
-		
+
 	default:
 		// No vehicle status update needed for pending
 		return nil
 	}
-	
-	err = s.vehicleRepo.UpdateStatus(repair.VehicleID, vehicleStatus)
+
+	err = s.vehicleRepo.UpdateStatus(repair.VehicleID, string(vehicleStatus))
 	if err != nil {
 		return fmt.Errorf("failed to update vehicle status: %v", err)
 	}
-	
+
 	return nil
 }
 
@@ -190,25 +190,25 @@ func (s *repairService) DeleteRepairOrder(id int) error {
 	if err != nil {
 		return fmt.Errorf("repair order not found: %v", err)
 	}
-	
+
 	// Only allow deletion if repair is pending or cancelled
 	if repair.Status != models.RepairStatusPending && repair.Status != models.RepairStatusCancelled {
 		return fmt.Errorf("cannot delete repair order in %s status", repair.Status)
 	}
-	
+
 	err = s.repairRepo.Delete(id)
 	if err != nil {
 		return fmt.Errorf("failed to delete repair order: %v", err)
 	}
-	
+
 	// Update vehicle status back to available if it was in repair
 	if repair.Status == models.RepairStatusPending {
-		err = s.vehicleRepo.UpdateStatus(repair.VehicleID, models.VehicleStatusAvailable)
+		err = s.vehicleRepo.UpdateStatus(repair.VehicleID, string(models.VehicleStatusAvailable))
 		if err != nil {
 			return fmt.Errorf("failed to update vehicle status: %v", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -218,13 +218,13 @@ func (s *repairService) AddSparePartToRepair(repairID int, request *models.Repai
 	if err != nil {
 		return fmt.Errorf("repair order not found: %v", err)
 	}
-	
+
 	// Check if spare part exists
 	_, err = s.sparePartRepo.GetByID(request.SparePartID)
 	if err != nil {
 		return fmt.Errorf("spare part not found: %v", err)
 	}
-	
+
 	return s.repairRepo.AddSparePart(repairID, request)
 }
 
@@ -234,7 +234,7 @@ func (s *repairService) RemoveSparePartFromRepair(repairID int, sparePartID int)
 	if err != nil {
 		return fmt.Errorf("repair order not found: %v", err)
 	}
-	
+
 	return s.repairRepo.RemoveSparePart(repairID, sparePartID)
 }
 
@@ -244,7 +244,7 @@ func (s *repairService) GetRepairSpareParts(repairID int) ([]models.RepairSpareP
 	if err != nil {
 		return nil, fmt.Errorf("repair order not found: %v", err)
 	}
-	
+
 	return s.repairRepo.GetSpareParts(repairID)
 }
 
@@ -264,12 +264,12 @@ func (s *repairService) generateRepairCode() string {
 	// Generate repair code in format RPR-YYYYMMDD-XXX
 	now := time.Now()
 	dateStr := now.Format("20060102")
-	
+
 	// This is a simple implementation. In production, you might want to:
 	// 1. Query for the last repair order of the day
 	// 2. Increment the sequence number
 	// 3. Handle concurrent requests properly
-	
+
 	return fmt.Sprintf("RPR-%s-%03d", dateStr, now.Nanosecond()%1000)
 }
 
@@ -291,13 +291,13 @@ func (s *repairService) validateStatusTransition(currentStatus, newStatus models
 			models.RepairStatusPending, // Allow reactivation
 		},
 	}
-	
+
 	allowed := allowedTransitions[currentStatus]
 	for _, status := range allowed {
 		if status == newStatus {
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("invalid status transition from %s to %s", currentStatus, newStatus)
 }

@@ -26,7 +26,7 @@ class Customer {
       phone: json['phone'],
       email: json['email'],
       address: json['address'],
-      idCard: json['id_card'],
+      idCard: json['id_card_number'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
     );
@@ -125,13 +125,13 @@ class UpdateCustomerRequest {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
-    
+
     if (name != null) data['name'] = name;
     if (phone != null) data['phone'] = phone;
     if (email != null) data['email'] = email;
     if (address != null) data['address'] = address;
     if (idCard != null) data['id_card'] = idCard;
-    
+
     return data;
   }
 }

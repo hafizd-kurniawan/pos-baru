@@ -34,7 +34,7 @@ func (h *CustomerHandler) ListCustomers(c *gin.Context) {
 
 	// Calculate pagination info
 	totalPages := (int(total) + limit - 1) / limit
-	
+
 	utils.SendSuccess(c, "Customers retrieved successfully", gin.H{
 		"customers": customers,
 		"pagination": gin.H{
@@ -86,8 +86,8 @@ func (h *CustomerHandler) CreateCustomer(c *gin.Context) {
 
 	customer, err := h.customerService.Create(&req)
 	if err != nil {
-		if err.Error() == "customer with this phone number already exists" || 
-		   err.Error() == "customer with this email already exists" {
+		if err.Error() == "customer with this phone number already exists" ||
+			err.Error() == "customer with this email already exists" {
 			utils.SendError(c, http.StatusConflict, "Customer already exists", err.Error())
 			return
 		}
@@ -127,8 +127,8 @@ func (h *CustomerHandler) UpdateCustomer(c *gin.Context) {
 			utils.SendError(c, http.StatusNotFound, "Customer not found", "Customer with this ID does not exist")
 			return
 		}
-		if err.Error() == "another customer with this phone number already exists" || 
-		   err.Error() == "another customer with this email already exists" {
+		if err.Error() == "another customer with this phone number already exists" ||
+			err.Error() == "another customer with this email already exists" {
 			utils.SendError(c, http.StatusConflict, "Customer data conflict", err.Error())
 			return
 		}
@@ -206,5 +206,28 @@ func (h *CustomerHandler) GetCustomerByEmail(c *gin.Context) {
 
 	utils.SendSuccess(c, "Customer retrieved successfully", gin.H{
 		"customer": customer,
+	})
+}
+
+// SearchCustomerByPhone handles GET /api/customers/search?phone=xxx
+func (h *CustomerHandler) SearchCustomerByPhone(c *gin.Context) {
+	phone := c.Query("phone")
+	if phone == "" {
+		utils.SendError(c, http.StatusBadRequest, "Invalid phone", "Phone number is required")
+		return
+	}
+
+	customer, err := h.customerService.GetByPhone(phone)
+	if err != nil {
+		if err.Error() == "customer not found" {
+			utils.SendError(c, http.StatusNotFound, "Customer not found", "Customer with this phone number does not exist")
+			return
+		}
+		utils.SendError(c, http.StatusInternalServerError, "Failed to search customer", err.Error())
+		return
+	}
+
+	utils.SendSuccess(c, "Customer found", gin.H{
+		"data": customer,
 	})
 }

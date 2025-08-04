@@ -196,7 +196,7 @@ func (s *vehicleService) MarkForRepair(id int) error {
 	}
 
 	// Update status to in_repair
-	err = s.vehicleRepo.UpdateStatus(id, models.VehicleStatusInRepair)
+	err = s.vehicleRepo.UpdateStatus(id, string(models.VehicleStatusInRepair))
 	if err != nil {
 		return fmt.Errorf("failed to mark vehicle for repair: %w", err)
 	}

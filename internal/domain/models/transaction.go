@@ -59,24 +59,34 @@ type SalesTransaction struct {
 
 // PurchaseTransactionCreateRequest for creating new purchase transaction
 type PurchaseTransactionCreateRequest struct {
-	SourceType      SourceType    `json:"source_type" validate:"required"`
-	SourceID        int           `json:"source_id" validate:"required"`
-	VehicleID       int           `json:"vehicle_id" validate:"required"`
-	PurchasePrice   float64       `json:"purchase_price" validate:"required,min=0"`
-	PaymentMethod   *string       `json:"payment_method" validate:"omitempty,max=50"`
-	PaymentStatus   PaymentStatus `json:"payment_status"`
-	Notes           *string       `json:"notes"`
+	SourceType    SourceType    `json:"source_type" validate:"required"`
+	SourceID      int           `json:"source_id" validate:"required"`
+	VehicleID     int           `json:"vehicle_id" validate:"required"`
+	PurchasePrice float64       `json:"purchase_price" validate:"required,min=0"`
+	PaymentMethod *string       `json:"payment_method" validate:"omitempty,max=50"`
+	PaymentStatus PaymentStatus `json:"payment_status"`
+	Notes         *string       `json:"notes"`
 }
 
 // SalesTransactionCreateRequest for creating new sales transaction
 type SalesTransactionCreateRequest struct {
-	CustomerID       int           `json:"customer_id" validate:"required"`
-	VehicleID        int           `json:"vehicle_id" validate:"required"`
-	SellingPrice     float64       `json:"selling_price" validate:"required,min=0"`
-	PaymentMethod    *string       `json:"payment_method" validate:"omitempty,max=50"`
-	PaymentStatus    PaymentStatus `json:"payment_status"`
-	DownPayment      float64       `json:"down_payment" validate:"min=0"`
-	Notes            *string       `json:"notes"`
+	CustomerID    int           `json:"customer_id" validate:"required"`
+	VehicleID     int           `json:"vehicle_id" validate:"required"`
+	SellingPrice  float64       `json:"selling_price" validate:"required,min=0"`
+	PaymentMethod *string       `json:"payment_method" validate:"omitempty,max=50"`
+	PaymentStatus PaymentStatus `json:"payment_status"`
+	DownPayment   float64       `json:"down_payment" validate:"min=0"`
+	Notes         *string       `json:"notes"`
+	SalespersonID int           `json:"salesperson_id"`
+}
+
+// SalesTransactionUpdateRequest for updating sales transaction
+type SalesTransactionUpdateRequest struct {
+	SellingPrice  *float64       `json:"selling_price" validate:"omitempty,min=0"`
+	PaymentMethod *string        `json:"payment_method" validate:"omitempty,max=50"`
+	PaymentStatus *PaymentStatus `json:"payment_status"`
+	DownPayment   *float64       `json:"down_payment" validate:"omitempty,min=0"`
+	Notes         *string        `json:"notes"`
 }
 
 // PaymentUpdateRequest for updating payment status
