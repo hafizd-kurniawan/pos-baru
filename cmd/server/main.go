@@ -34,6 +34,7 @@ func main() {
 	vehicleTypeRepo := repository.NewVehicleTypeRepository(db)
 	customerRepo := repository.NewCustomerRepository(db)
 	transactionRepo := repository.NewTransactionRepository(db)
+	salesRepo := repository.NewSalesRepository(db.DB)
 	sparePartRepo := repository.NewSparePartRepository(db)
 	repairRepo := repository.NewRepairRepository(db)
 	dashboardRepo := repository.NewDashboardRepository(db.DB)
@@ -48,6 +49,7 @@ func main() {
 	vehicleTypeService := service.NewVehicleTypeService(vehicleTypeRepo)
 	customerService := service.NewCustomerService(customerRepo)
 	transactionService := service.NewTransactionService(transactionRepo, vehicleRepo, customerRepo)
+	salesService := service.NewSalesService(salesRepo, vehicleRepo, customerRepo)
 	sparePartService := service.NewSparePartService(sparePartRepo)
 	repairService := service.NewRepairService(repairRepo, vehicleRepo, userRepo, sparePartRepo)
 	dashboardService := service.NewDashboardService(dashboardRepo)
@@ -60,6 +62,7 @@ func main() {
 	vehicleTypeHandler := handler.NewVehicleTypeHandler(vehicleTypeService)
 	customerHandler := handler.NewCustomerHandler(customerService)
 	transactionHandler := handler.NewTransactionHandler(transactionService)
+	salesHandler := handler.NewSalesHandler(salesService)
 	sparePartHandler := handler.NewSparePartHandler(sparePartService)
 	repairHandler := handler.NewRepairHandler(repairService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
@@ -67,7 +70,7 @@ func main() {
 	userHandler := handler.NewUserHandler(userService)
 
 	// Setup router
-	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, vehicleTypeHandler, customerHandler, transactionHandler, sparePartHandler, repairHandler, dashboardHandler, supplierHandler, userHandler)
+	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, vehicleTypeHandler, customerHandler, transactionHandler, salesHandler, sparePartHandler, repairHandler, dashboardHandler, supplierHandler, userHandler)
 
 	// Start server
 	log.Printf("Starting server on port %s", cfg.Server.Port)
@@ -76,7 +79,7 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, vehicleTypeHandler *handler.VehicleTypeHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler, sparePartHandler *handler.SparePartHandler, repairHandler *handler.RepairHandler, dashboardHandler *handler.DashboardHandler, supplierHandler *handler.SupplierHandler, userHandler *handler.UserHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, vehicleTypeHandler *handler.VehicleTypeHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler, salesHandler *handler.SalesHandler, sparePartHandler *handler.SparePartHandler, repairHandler *handler.RepairHandler, dashboardHandler *handler.DashboardHandler, supplierHandler *handler.SupplierHandler, userHandler *handler.UserHandler) *gin.Engine {
 	// Set gin mode
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -175,6 +178,17 @@ func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, au
 					sales.POST("", jwtMiddleware.RequireCashierOrAdmin(), transactionHandler.CreateSalesTransaction)
 					sales.PATCH("/:id/payment", jwtMiddleware.RequireCashierOrAdmin(), transactionHandler.UpdateSalesPaymentStatus)
 				}
+			}
+
+			// Sales routes (new dedicated routes)
+			sales := protected.Group("/sales")
+			{
+				sales.POST("/transactions", jwtMiddleware.RequireCashierOrAdmin(), salesHandler.CreateSalesTransaction)
+				sales.GET("/transactions", salesHandler.ListSalesTransactions)
+				sales.GET("/transactions/:id", salesHandler.GetSalesTransaction)
+				sales.PUT("/transactions/:id", jwtMiddleware.RequireCashierOrAdmin(), salesHandler.UpdateSalesTransaction)
+				sales.DELETE("/transactions/:id", jwtMiddleware.RequireAdmin(), salesHandler.DeleteSalesTransaction)
+				sales.GET("/vehicles/available", salesHandler.GetAvailableVehicles)
 			}
 
 			// Spare Parts routes

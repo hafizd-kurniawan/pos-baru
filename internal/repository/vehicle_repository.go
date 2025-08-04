@@ -19,12 +19,13 @@ type VehicleRepository interface {
 	List(page, limit int, status *models.VehicleStatus) ([]models.Vehicle, int64, error)
 	GetAvailableVehicles(page, limit int) ([]models.Vehicle, int64, error)
 	GetVehiclesInRepair(page, limit int) ([]models.Vehicle, int64, error)
-	UpdateStatus(id int, status models.VehicleStatus) error
+	UpdateStatus(id int, status string) error
 	UpdateHPPPrice(id int, hppPrice float64) error
 	UpdateSellingPrice(id int, sellingPrice float64) error
 	UpdateRepairCost(id int, repairCost float64) error
 	MarkAsSold(id int, soldPrice float64) error
 	SearchVehicles(offset, limit int, filters models.VehicleSearchFilters) ([]models.Vehicle, int64, error)
+	SearchAvailable(search, brand string, yearFrom, yearTo *int, sortBy, status string) ([]models.Vehicle, error)
 	GetAllBrands() ([]models.VehicleBrand, error)
 }
 
@@ -358,7 +359,7 @@ func (r *vehicleRepository) GetVehiclesInRepair(page, limit int) ([]models.Vehic
 	return r.List(page, limit, &status)
 }
 
-func (r *vehicleRepository) UpdateStatus(id int, status models.VehicleStatus) error {
+func (r *vehicleRepository) UpdateStatus(id int, status string) error {
 	query := `UPDATE vehicles SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
 
 	result, err := r.db.Exec(query, status, id)
@@ -628,4 +629,84 @@ func (r *vehicleRepository) GetAllBrands() ([]models.VehicleBrand, error) {
 	}
 
 	return brands, nil
+}
+
+func (r *vehicleRepository) SearchAvailable(search, brand string, yearFrom, yearTo *int, sortBy, status string) ([]models.Vehicle, error) {
+	conditions := []string{"status = 'available'"}
+	args := []interface{}{}
+	argIndex := 1
+
+	// Override status if provided
+	if status != "" && status != "available" {
+		conditions[0] = fmt.Sprintf("status = $%d", argIndex)
+		args = append(args, status)
+		argIndex++
+	}
+
+	// Add search condition
+	if search != "" {
+		searchCondition := fmt.Sprintf("(LOWER(brand) LIKE LOWER($%d) OR LOWER(model) LIKE LOWER($%d) OR LOWER(license_plate) LIKE LOWER($%d))", argIndex, argIndex, argIndex)
+		conditions = append(conditions, searchCondition)
+		searchPattern := "%" + search + "%"
+		args = append(args, searchPattern)
+		argIndex++
+	}
+
+	// Add brand condition
+	if brand != "" {
+		conditions = append(conditions, fmt.Sprintf("LOWER(brand) = LOWER($%d)", argIndex))
+		args = append(args, brand)
+		argIndex++
+	}
+
+	// Add year range conditions
+	if yearFrom != nil {
+		conditions = append(conditions, fmt.Sprintf("year >= $%d", argIndex))
+		args = append(args, *yearFrom)
+		argIndex++
+	}
+
+	if yearTo != nil {
+		conditions = append(conditions, fmt.Sprintf("year <= $%d", argIndex))
+		args = append(args, *yearTo)
+		argIndex++
+	}
+
+	whereClause := "WHERE " + strings.Join(conditions, " AND ")
+
+	// Set default sort
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, code, brand, model, year, license_plate, color, 
+			   purchase_price, selling_price, status, created_at, updated_at
+		FROM vehicles 
+		%s
+		ORDER BY %s DESC
+		LIMIT 100`, whereClause, sortBy)
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search available vehicles: %v", err)
+	}
+	defer rows.Close()
+
+	var vehicles []models.Vehicle
+	for rows.Next() {
+		var vehicle models.Vehicle
+		err := rows.Scan(
+			&vehicle.ID, &vehicle.Code, &vehicle.Brand, &vehicle.Model,
+			&vehicle.Year, &vehicle.LicensePlate, &vehicle.Color,
+			&vehicle.PurchasePrice, &vehicle.SellingPrice, &vehicle.Status,
+			&vehicle.CreatedAt, &vehicle.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan vehicle: %v", err)
+		}
+		vehicles = append(vehicles, vehicle)
+	}
+
+	return vehicles, nil
 }

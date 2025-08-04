@@ -8,6 +8,7 @@ import '../../features/customers/presentation/pages/customers_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/main_layout.dart';
 import '../../features/repairs/presentation/pages/repairs_page.dart';
+import '../../features/sales/presentation/pages/point_of_sales_page.dart';
 import '../../features/spare_parts/presentation/pages/spare_parts_page.dart';
 import '../../features/suppliers/presentation/pages/suppliers_page.dart';
 import '../../features/transactions/presentation/pages/add_transaction_page.dart';
@@ -28,6 +29,7 @@ class AppRoutes {
   static const String vehicleDetail = '/vehicles/:id';
   static const String addVehicle = '/vehicles/add';
   static const String vehicleTypes = '/vehicle-types';
+  static const String pointOfSales = '/point-of-sales';
   static const String customers = '/customers';
   static const String customerDetail = '/customers/:id';
   static const String addCustomer = '/customers/add';
@@ -110,6 +112,10 @@ class AppRoutes {
           GoRoute(
             path: vehicleTypes,
             builder: (context, state) => const VehicleTypesPage(),
+          ),
+          GoRoute(
+            path: pointOfSales,
+            builder: (context, state) => const PointOfSalesPage(),
           ),
           GoRoute(
             path: customers,

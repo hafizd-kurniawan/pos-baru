@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/models/user.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class SidebarWidget extends StatelessWidget {
   final bool isCollapsed;
   final User? currentUser;
   final VoidCallback onToggleCollapse;
   final VoidCallback onLogout;
-  
+
   const SidebarWidget({
     super.key,
     required this.isCollapsed,
@@ -21,7 +22,7 @@ class SidebarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentLocation = GoRouterState.of(context).fullPath;
-    
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       width: isCollapsed ? 70 : 280,
@@ -39,7 +40,7 @@ class SidebarWidget extends StatelessWidget {
         children: [
           // Header
           _buildHeader(),
-          
+
           // Navigation Items
           Expanded(
             child: ListView(
@@ -53,7 +54,7 @@ class SidebarWidget extends StatelessWidget {
                   isSelected: currentLocation == AppRoutes.dashboard,
                   context: context,
                 ),
-                
+
                 _buildNavItem(
                   icon: Icons.directions_car_outlined,
                   selectedIcon: Icons.directions_car,
@@ -62,16 +63,27 @@ class SidebarWidget extends StatelessWidget {
                   isSelected: currentLocation?.startsWith('/vehicles') == true,
                   context: context,
                 ),
-                
+
                 _buildNavItem(
                   icon: Icons.category_outlined,
                   selectedIcon: Icons.category,
                   title: 'Tipe Kendaraan',
                   route: AppRoutes.vehicleTypes,
-                  isSelected: currentLocation?.startsWith('/vehicle-types') == true,
+                  isSelected:
+                      currentLocation?.startsWith('/vehicle-types') == true,
                   context: context,
                 ),
-                
+
+                _buildNavItem(
+                  icon: Icons.point_of_sale_outlined,
+                  selectedIcon: Icons.point_of_sale,
+                  title: 'Jual Kendaraan',
+                  route: AppRoutes.pointOfSales,
+                  isSelected:
+                      currentLocation?.startsWith('/point-of-sales') == true,
+                  context: context,
+                ),
+
                 _buildNavItem(
                   icon: Icons.people_outline,
                   selectedIcon: Icons.people,
@@ -80,25 +92,27 @@ class SidebarWidget extends StatelessWidget {
                   isSelected: currentLocation?.startsWith('/customers') == true,
                   context: context,
                 ),
-                
+
                 _buildNavItem(
                   icon: Icons.receipt_long_outlined,
                   selectedIcon: Icons.receipt_long,
                   title: 'Transaksi',
                   route: AppRoutes.transactions,
-                  isSelected: currentLocation?.startsWith('/transactions') == true,
+                  isSelected:
+                      currentLocation?.startsWith('/transactions') == true,
                   context: context,
                 ),
-                
+
                 _buildNavItem(
                   icon: Icons.inventory_2_outlined,
                   selectedIcon: Icons.inventory_2,
                   title: 'Spare Parts',
                   route: AppRoutes.spareParts,
-                  isSelected: currentLocation?.startsWith('/spare-parts') == true,
+                  isSelected:
+                      currentLocation?.startsWith('/spare-parts') == true,
                   context: context,
                 ),
-                
+
                 _buildNavItem(
                   icon: Icons.build_outlined,
                   selectedIcon: Icons.build,
@@ -107,7 +121,7 @@ class SidebarWidget extends StatelessWidget {
                   isSelected: currentLocation?.startsWith('/repairs') == true,
                   context: context,
                 ),
-                
+
                 _buildNavItem(
                   icon: Icons.business_outlined,
                   selectedIcon: Icons.business,
@@ -116,12 +130,11 @@ class SidebarWidget extends StatelessWidget {
                   isSelected: currentLocation?.startsWith('/suppliers') == true,
                   context: context,
                 ),
-                
+
                 // Admin-only section
                 if (currentUser?.roleName == 'admin') ...[
                   const SizedBox(height: 16),
                   if (!isCollapsed) _buildSectionTitle('Administrasi'),
-                  
                   _buildNavItem(
                     icon: Icons.admin_panel_settings_outlined,
                     selectedIcon: Icons.admin_panel_settings,
@@ -134,7 +147,7 @@ class SidebarWidget extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Footer
           _buildFooter(),
         ],
@@ -171,7 +184,7 @@ class SidebarWidget extends StatelessWidget {
               size: 20,
             ),
           ),
-          
+
           if (!isCollapsed) ...[
             const SizedBox(width: 12),
             Expanded(
@@ -229,19 +242,22 @@ class SidebarWidget extends StatelessWidget {
               children: [
                 Icon(
                   isSelected ? selectedIcon : icon,
-                  color: isSelected ? AppTheme.primaryColor : AppTheme.sidebarIcon,
+                  color:
+                      isSelected ? AppTheme.primaryColor : AppTheme.sidebarIcon,
                   size: 22,
                 ),
-                
                 if (!isCollapsed) ...[
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       title,
                       style: TextStyle(
-                        color: isSelected ? AppTheme.primaryColor : AppTheme.sidebarText,
+                        color: isSelected
+                            ? AppTheme.primaryColor
+                            : AppTheme.sidebarText,
                         fontSize: 14,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w500,
                       ),
                     ),
                   ),
@@ -295,7 +311,7 @@ class SidebarWidget extends StatelessWidget {
                     radius: 16,
                     backgroundColor: AppTheme.primaryColor,
                     child: Text(
-                      currentUser!.fullName.isNotEmpty 
+                      currentUser!.fullName.isNotEmpty
                           ? currentUser!.fullName[0].toUpperCase()
                           : 'U',
                       style: const TextStyle(
@@ -344,7 +360,7 @@ class SidebarWidget extends StatelessWidget {
             ),
             const SizedBox(height: 12),
           ],
-          
+
           // Collapse Toggle
           Material(
             color: Colors.transparent,
@@ -355,7 +371,9 @@ class SidebarWidget extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Icon(
-                  isCollapsed ? Icons.keyboard_arrow_right : Icons.keyboard_arrow_left,
+                  isCollapsed
+                      ? Icons.keyboard_arrow_right
+                      : Icons.keyboard_arrow_left,
                   color: AppTheme.sidebarIcon,
                   size: 20,
                 ),
