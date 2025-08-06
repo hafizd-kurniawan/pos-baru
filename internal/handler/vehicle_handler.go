@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -109,11 +110,13 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 
 type VehicleHandler struct {
 	vehicleService service.VehicleService
+	repairService  service.RepairService
 }
 
-func NewVehicleHandler(vehicleService service.VehicleService) *VehicleHandler {
+func NewVehicleHandler(vehicleService service.VehicleService, repairService service.RepairService) *VehicleHandler {
 	return &VehicleHandler{
 		vehicleService: vehicleService,
+		repairService:  repairService,
 	}
 }
 
@@ -209,6 +212,14 @@ func (h *VehicleHandler) UpdateVehicle(c *gin.Context) {
 		return
 	}
 
+	// Get vehicle before update to check status change
+	oldVehicle, err := h.vehicleService.GetByID(id)
+	if err != nil {
+		utils.SendNotFound(c, "Vehicle not found")
+		return
+	}
+
+	// Update vehicle
 	vehicle, err := h.vehicleService.Update(id, &req)
 	if err != nil {
 		if err.Error() == "vehicle not found" {
@@ -217,6 +228,56 @@ func (h *VehicleHandler) UpdateVehicle(c *gin.Context) {
 		}
 		utils.SendInternalServerError(c, "Failed to update vehicle", err.Error())
 		return
+	}
+
+	// Auto-create repair order if status changed to "in_repair"
+	if req.Status != nil && *req.Status == "in_repair" && oldVehicle.Status != "in_repair" {
+		// Check if there's already an active repair order for this vehicle
+		existingRepairs, _, listErr := h.repairService.ListRepairOrders(models.RepairOrderFilter{
+			VehicleID: vehicle.ID,
+		}, 1, 10)
+
+		hasActiveRepair := false
+		if listErr == nil {
+			for _, repair := range existingRepairs {
+				if repair.Status == "pending" || repair.Status == "in_progress" {
+					hasActiveRepair = true
+					break
+				}
+			}
+		}
+
+		if !hasActiveRepair {
+			// Get user info from context (from auth middleware)
+			userInfo, exists := c.Get("user")
+			assignedBy := 1 // Default admin user
+			if exists {
+				if user, ok := userInfo.(*models.User); ok {
+					assignedBy = user.ID
+				}
+			}
+
+			// Create auto repair order
+			description := "Auto-created repair order for vehicle status change"
+			notes := "Automatically created when vehicle status changed to in_repair"
+			repairReq := &models.RepairOrderCreateRequest{
+				VehicleID:     vehicle.ID,
+				MechanicID:    assignedBy, // Assign to current user or admin
+				Description:   &description,
+				EstimatedCost: 100000, // Default estimated cost
+				Notes:         &notes,
+			}
+
+			repairOrder, err := h.repairService.CreateRepairOrder(repairReq, assignedBy)
+			if err != nil {
+				// Log error but don't fail the vehicle update
+				fmt.Printf("Warning: Failed to auto-create repair order for vehicle %d: %v\n", vehicle.ID, err)
+			} else {
+				fmt.Printf("✅ Auto-created repair order %s for vehicle %d\n", repairOrder.Code, vehicle.ID)
+			}
+		} else {
+			fmt.Printf("ℹ️ Vehicle %d already has an active repair order, skipping auto-creation\n", vehicle.ID)
+		}
 	}
 
 	utils.SendSuccess(c, "Vehicle updated successfully", vehicle)

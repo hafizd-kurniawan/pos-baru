@@ -23,6 +23,9 @@ class User {
     required this.updatedAt,
   });
 
+  // Alias for fullName to match API response
+  String get name => fullName;
+
   factory User.fromJson(Map<String, dynamic> json) {
     // Handle role_name - it might come directly or from nested role object
     String roleName;

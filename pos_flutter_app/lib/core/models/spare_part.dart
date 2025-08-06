@@ -3,11 +3,12 @@ class SparePart {
   final String code;
   final String name;
   final String? description;
-  final double price;
-  final int stock;
-  final int? minStock;
-  final String? supplier;
   final String category;
+  final String unit;
+  final double purchasePrice;
+  final double sellingPrice;
+  final int stockQuantity;
+  final int minimumStock;
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -17,11 +18,12 @@ class SparePart {
     required this.code,
     required this.name,
     this.description,
-    required this.price,
-    required this.stock,
-    this.minStock,
-    this.supplier,
     required this.category,
+    required this.unit,
+    required this.purchasePrice,
+    required this.sellingPrice,
+    required this.stockQuantity,
+    required this.minimumStock,
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
@@ -29,18 +31,21 @@ class SparePart {
 
   factory SparePart.fromJson(Map<String, dynamic> json) {
     return SparePart(
-      id: json['id'],
-      code: json['code'],
-      name: json['name'],
+      id: json['id'] ?? 0,
+      code: json['code'] ?? '',
+      name: json['name'] ?? '',
       description: json['description'],
-      price: (json['price'] as num).toDouble(),
-      stock: json['stock'],
-      minStock: json['min_stock'],
-      supplier: json['supplier'],
-      category: json['category'],
+      category: json['category'] ?? 'General',
+      unit: json['unit'] ?? 'pcs',
+      purchasePrice: (json['purchase_price'] as num?)?.toDouble() ?? 0.0,
+      sellingPrice: (json['selling_price'] as num?)?.toDouble() ?? 0.0,
+      stockQuantity: json['stock_quantity'] ?? 0,
+      minimumStock: json['minimum_stock'] ?? 0,
       isActive: json['is_active'] ?? true,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      createdAt: DateTime.parse(
+          json['created_at'] ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(
+          json['updated_at'] ?? DateTime.now().toIso8601String()),
     );
   }
 
@@ -50,36 +55,42 @@ class SparePart {
       'code': code,
       'name': name,
       'description': description,
-      'price': price,
-      'stock': stock,
-      'min_stock': minStock,
-      'supplier': supplier,
       'category': category,
+      'unit': unit,
+      'purchase_price': purchasePrice,
+      'selling_price': sellingPrice,
+      'stock_quantity': stockQuantity,
+      'minimum_stock': minimumStock,
       'is_active': isActive,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
   }
 
-  bool get isLowStock => minStock != null && stock <= minStock!;
+  bool get isLowStock => stockQuantity <= minimumStock;
 
   String get stockStatus {
     if (!isActive) return 'Tidak Aktif';
-    if (stock == 0) return 'Habis';
+    if (stockQuantity == 0) return 'Habis';
     if (isLowStock) return 'Stok Rendah';
     return 'Tersedia';
   }
+
+  double get profit => sellingPrice - purchasePrice;
+  double get profitMargin =>
+      purchasePrice > 0 ? (profit / purchasePrice) * 100 : 0;
 
   SparePart copyWith({
     int? id,
     String? code,
     String? name,
     String? description,
-    double? price,
-    int? stock,
-    int? minStock,
-    String? supplier,
     String? category,
+    String? unit,
+    double? purchasePrice,
+    double? sellingPrice,
+    int? stockQuantity,
+    int? minimumStock,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -89,11 +100,12 @@ class SparePart {
       code: code ?? this.code,
       name: name ?? this.name,
       description: description ?? this.description,
-      price: price ?? this.price,
-      stock: stock ?? this.stock,
-      minStock: minStock ?? this.minStock,
-      supplier: supplier ?? this.supplier,
       category: category ?? this.category,
+      unit: unit ?? this.unit,
+      purchasePrice: purchasePrice ?? this.purchasePrice,
+      sellingPrice: sellingPrice ?? this.sellingPrice,
+      stockQuantity: stockQuantity ?? this.stockQuantity,
+      minimumStock: minimumStock ?? this.minimumStock,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -102,7 +114,7 @@ class SparePart {
 
   @override
   String toString() {
-    return 'SparePart(id: $id, code: $code, name: $name, stock: $stock)';
+    return 'SparePart(id: $id, code: $code, name: $name, stockQuantity: $stockQuantity)';
   }
 
   @override
@@ -113,27 +125,31 @@ class SparePart {
 
   @override
   int get hashCode => id.hashCode;
+
+  // Alias for category to match repair card usage
+  String? get brand => category;
 }
 
+// Request Models
 class CreateSparePartRequest {
   final String code;
   final String name;
   final String? description;
-  final double price;
-  final int stock;
-  final int? minStock;
-  final String? supplier;
-  final String category;
+  final String unit;
+  final double purchasePrice;
+  final double sellingPrice;
+  final int stockQuantity;
+  final int minimumStock;
 
   const CreateSparePartRequest({
     required this.code,
     required this.name,
     this.description,
-    required this.price,
-    required this.stock,
-    this.minStock,
-    this.supplier,
-    required this.category,
+    required this.unit,
+    required this.purchasePrice,
+    required this.sellingPrice,
+    required this.stockQuantity,
+    required this.minimumStock,
   });
 
   Map<String, dynamic> toJson() {
@@ -141,11 +157,11 @@ class CreateSparePartRequest {
       'code': code,
       'name': name,
       'description': description,
-      'price': price,
-      'stock': stock,
-      'min_stock': minStock,
-      'supplier': supplier,
-      'category': category,
+      'unit': unit,
+      'purchase_price': purchasePrice,
+      'selling_price': sellingPrice,
+      'stock_quantity': stockQuantity,
+      'minimum_stock': minimumStock,
     };
   }
 }
@@ -153,52 +169,55 @@ class CreateSparePartRequest {
 class UpdateSparePartRequest {
   final String? name;
   final String? description;
-  final double? price;
-  final int? minStock;
-  final String? supplier;
-  final String? category;
+  final String? unit;
+  final double? purchasePrice;
+  final double? sellingPrice;
+  final int? stockQuantity;
+  final int? minimumStock;
   final bool? isActive;
 
   const UpdateSparePartRequest({
     this.name,
     this.description,
-    this.price,
-    this.minStock,
-    this.supplier,
-    this.category,
+    this.unit,
+    this.purchasePrice,
+    this.sellingPrice,
+    this.stockQuantity,
+    this.minimumStock,
     this.isActive,
   });
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {};
-    
+
     if (name != null) data['name'] = name;
     if (description != null) data['description'] = description;
-    if (price != null) data['price'] = price;
-    if (minStock != null) data['min_stock'] = minStock;
-    if (supplier != null) data['supplier'] = supplier;
-    if (category != null) data['category'] = category;
+    if (unit != null) data['unit'] = unit;
+    if (purchasePrice != null) data['purchase_price'] = purchasePrice;
+    if (sellingPrice != null) data['selling_price'] = sellingPrice;
+    if (stockQuantity != null) data['stock_quantity'] = stockQuantity;
+    if (minimumStock != null) data['minimum_stock'] = minimumStock;
     if (isActive != null) data['is_active'] = isActive;
-    
+
     return data;
   }
 }
 
 class UpdateStockRequest {
   final int quantity;
-  final String type; // 'add' or 'subtract'
+  final String operation; // 'add' or 'subtract'
   final String? notes;
 
   const UpdateStockRequest({
     required this.quantity,
-    required this.type,
+    required this.operation,
     this.notes,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'quantity': quantity,
-      'type': type,
+      'operation': operation,
       'notes': notes,
     };
   }

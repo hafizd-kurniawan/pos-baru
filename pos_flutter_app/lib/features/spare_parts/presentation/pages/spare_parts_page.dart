@@ -1,24 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/models/spare_part.dart';
+import '../../../../core/storage/storage_service.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../blocs/spare_part_bloc.dart';
 
 class SparePartsPage extends StatefulWidget {
-  const SparePartsPage({super.key});
+  const SparePartsPage({Key? key}) : super(key: key);
 
   @override
   State<SparePartsPage> createState() => _SparePartsPageState();
 }
 
 class _SparePartsPageState extends State<SparePartsPage> {
-  final TextEditingController _searchController = TextEditingController();
+  final _searchController = TextEditingController();
+  String? _selectedFilter;
 
   @override
   void initState() {
     super.initState();
-    context.read<SparePartBloc>().add(LoadSpareParts());
+    _loadData();
+  }
+
+  void _loadData() async {
+    final token = await StorageService.getToken();
+    if (token != null && mounted) {
+      context.read<SparePartBloc>().add(LoadSpareParts(token: token));
+    }
   }
 
   @override
@@ -31,10 +42,7 @@ class _SparePartsPageState extends State<SparePartsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Spare Parts',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        title: const Text('Spare Parts'),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
         actions: [
@@ -46,24 +54,23 @@ class _SparePartsPageState extends State<SparePartsPage> {
       ),
       body: Column(
         children: [
+          // Search Bar
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Cari spare part...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
               ),
               onChanged: (value) {
                 // TODO: Implement search
               },
             ),
           ),
+          
+          // Content
           Expanded(
             child: BlocBuilder<SparePartBloc, SparePartState>(
               builder: (context, state) {
@@ -74,72 +81,42 @@ class _SparePartsPageState extends State<SparePartsPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
+                        const Icon(Icons.error, size: 64, color: Colors.red),
                         const SizedBox(height: 16),
                         Text(
                           'Error: ${state.message}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red),
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: () {
-                            context.read<SparePartBloc>().add(LoadSpareParts());
-                          },
-                          child: const Text('Coba Lagi'),
+                          onPressed: () => _loadData(),
+                          child: const Text('Retry'),
                         ),
                       ],
                     ),
                   );
                 } else if (state is SparePartsLoaded) {
                   if (state.spareParts.isEmpty) {
-                    return Center(
+                    return const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.inventory_2_outlined,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
+                          Icon(Icons.inventory_2, size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
                           Text(
                             'Belum ada spare part',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[600],
-                            ),
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Text(
-                            'Tambah spare part pertama Anda',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () => context.go(AppRoutes.addSparePart),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryColor,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Tambah Spare Part'),
+                            'Tambahkan spare part pertama Anda',
+                            style: TextStyle(color: Colors.grey),
                           ),
                         ],
                       ),
                     );
                   }
-
+                  
                   return ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: state.spareParts.length,
@@ -147,62 +124,119 @@ class _SparePartsPageState extends State<SparePartsPage> {
                       final sparePart = state.spareParts[index];
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
-                        elevation: 2,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
                           leading: Container(
-                            width: 56,
-                            height: 56,
+                            width: 48,
+                            height: 48,
                             decoration: BoxDecoration(
                               color: AppTheme.primaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Icon(
-                              Icons.inventory_2,
+                            child: const Icon(
+                              Icons.build_circle,
                               color: AppTheme.primaryColor,
-                              size: 28,
                             ),
                           ),
                           title: Text(
                             sparePart.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const SizedBox(height: 4),
                               Text(
-                                'Rp ${sparePart.price.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  color: AppTheme.secondaryColor,
+                                'Rp ${sparePart.sellingPrice.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  color: Colors.green,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              Text('Stock: ${sparePart.stock}'),
+                              Text('Stock: ${sparePart.stockQuantity}'),
                             ],
                           ),
-                          trailing: const Icon(Icons.arrow_forward_ios),
                           onTap: () {
+                            // Navigate to detail
                             context.go('${AppRoutes.spareParts}/${sparePart.id}');
                           },
+                          trailing: PopupMenuButton<String>(
+                            onSelected: (value) {
+                              switch (value) {
+                                case 'edit':
+                                  context.go('${AppRoutes.spareParts}/${sparePart.id}/edit');
+                                  break;
+                                case 'delete':
+                                  _deleteSparePart(sparePart);
+                                  break;
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit),
+                                    SizedBox(width: 8),
+                                    Text('Edit'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Hapus'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
                   );
                 }
-
-                return const SizedBox.shrink();
+                
+                return const SizedBox();
               },
             ),
           ),
         ],
       ),
     );
+  }
+
+  void _deleteSparePart(SparePart sparePart) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi'),
+        content: Text('Apakah Anda yakin ingin menghapus ${sparePart.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final token = await StorageService.getToken();
+      if (token != null && mounted) {
+        context.read<SparePartBloc>().add(
+          DeleteSparePart(id: sparePart.id, token: token),
+        );
+      }
+    }
   }
 }

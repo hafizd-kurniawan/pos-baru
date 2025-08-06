@@ -25,6 +25,9 @@ type RepairService interface {
 	// Statistics and reporting
 	GetRepairStats(mechanicID *int, dateFrom, dateTo *time.Time) (map[string]interface{}, error)
 	GetMechanicWorkload() ([]map[string]interface{}, error)
+
+	// Vehicle management
+	GetVehiclesNeedingRepairOrders() ([]models.Vehicle, error)
 }
 
 type repairService struct {
@@ -56,14 +59,14 @@ func (s *repairService) CreateRepairOrder(request *models.RepairOrderCreateReque
 	}
 
 	// Validate mechanic exists and has correct role
-	mechanic, err := s.userRepo.GetByID(request.MechanicID)
+	_, err = s.userRepo.GetByID(request.MechanicID)
 	if err != nil {
 		return nil, fmt.Errorf("mechanic not found: %v", err)
 	}
 
-	if mechanic.RoleID != 3 { // Assuming role_id 3 is mechanic
-		return nil, fmt.Errorf("assigned user is not a mechanic")
-	}
+	// if mechanic.RoleID != 3 { // Assuming role_id 3 is mechanic
+	// 	return nil, fmt.Errorf("assigned user is not a mechanic")
+	// }
 
 	// Generate repair order code
 	code := s.generateRepairCode()
@@ -139,11 +142,15 @@ func (s *repairService) UpdateRepairProgress(id int, request *models.RepairProgr
 		return fmt.Errorf("repair order not found: %v", err)
 	}
 
+	fmt.Printf("UpdateRepairProgress service: repair found ID=%d, current status=%s\n", repair.ID, repair.Status)
+
 	// Validate status transition
 	err = s.validateStatusTransition(repair.Status, request.Status)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("UpdateRepairProgress service: updating to status=%s\n", request.Status)
 
 	// Update repair progress
 	err = s.repairRepo.UpdateProgress(id, request)
@@ -151,19 +158,32 @@ func (s *repairService) UpdateRepairProgress(id int, request *models.RepairProgr
 		return fmt.Errorf("failed to update repair progress: %v", err)
 	}
 
+	fmt.Printf("UpdateRepairProgress service: repair progress updated successfully\n")
+
 	// Update vehicle status based on repair status
 	var vehicleStatus models.VehicleStatus
 	switch request.Status {
 	case models.RepairStatusCompleted:
 		vehicleStatus = models.VehicleStatusAvailable
 
-		// Update vehicle repair cost
-		if request.ActualCost != nil {
-			err = s.vehicleRepo.UpdateRepairCost(repair.VehicleID, *request.ActualCost)
-			if err != nil {
-				return fmt.Errorf("failed to update vehicle repair cost: %v", err)
-			}
+		// Always calculate repair cost from spare parts used only
+		spareParts, err := s.repairRepo.GetSpareParts(id)
+		if err != nil {
+			return fmt.Errorf("failed to get spare parts for cost calculation: %v", err)
 		}
+
+		totalSparePartsCost := 0.0
+		for _, part := range spareParts {
+			totalSparePartsCost += part.UnitPrice * float64(part.QuantityUsed)
+		}
+
+		// Update vehicle repair cost with spare parts total only
+		err = s.vehicleRepo.UpdateRepairCost(repair.VehicleID, totalSparePartsCost)
+		if err != nil {
+			return fmt.Errorf("failed to update vehicle repair cost: %v", err)
+		}
+
+		fmt.Printf("UpdateRepairProgress service: vehicle repair cost updated to %.2f (from spare parts only)\n", totalSparePartsCost)
 
 	case models.RepairStatusCancelled:
 		vehicleStatus = models.VehicleStatusAvailable
@@ -180,6 +200,8 @@ func (s *repairService) UpdateRepairProgress(id int, request *models.RepairProgr
 	if err != nil {
 		return fmt.Errorf("failed to update vehicle status: %v", err)
 	}
+
+	fmt.Printf("UpdateRepairProgress service: vehicle status updated to %s\n", vehicleStatus)
 
 	return nil
 }
@@ -256,6 +278,48 @@ func (s *repairService) GetMechanicWorkload() ([]map[string]interface{}, error) 
 	// This would need a separate query to get mechanics and their current workload
 	// For now, return empty slice
 	return []map[string]interface{}{}, nil
+}
+
+func (s *repairService) GetVehiclesNeedingRepairOrders() ([]models.Vehicle, error) {
+	// Get all vehicles with in_repair status
+	inRepairStatus := models.VehicleStatusInRepair
+	vehicles, _, err := s.vehicleRepo.List(1, 100, &inRepairStatus) // Get up to 100 vehicles
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vehicles: %v", err)
+	}
+
+	var vehiclesNeedingOrders []models.Vehicle
+
+	// Check each vehicle to see if it has an active repair order
+	for _, vehicle := range vehicles {
+		// Check if vehicle has an active repair order (pending or in_progress)
+		repairs, _, err := s.repairRepo.List(models.RepairOrderFilter{
+			VehicleID: vehicle.ID,
+			Status:    "", // Get all statuses
+		}, 1, 10)
+
+		if err != nil {
+			fmt.Printf("Error checking repairs for vehicle %d: %v\n", vehicle.ID, err)
+			continue
+		}
+
+		// Check if there's any active repair order (pending or in_progress)
+		hasActiveRepair := false
+		for _, repair := range repairs {
+			if repair.Status == models.RepairStatusPending || repair.Status == models.RepairStatusInProgress {
+				hasActiveRepair = true
+				break
+			}
+		}
+
+		// If no active repair order, add to list
+		if !hasActiveRepair {
+			vehiclesNeedingOrders = append(vehiclesNeedingOrders, vehicle)
+		}
+	}
+
+	return vehiclesNeedingOrders, nil
 }
 
 // Helper methods

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/theme/app_theme.dart';
 import '../blocs/repair_bloc.dart';
 
@@ -21,8 +22,11 @@ class _RepairDetailPageState extends State<RepairDetailPage> {
   void initState() {
     super.initState();
     context.read<RepairBloc>().add(
-      LoadRepairDetail(int.parse(widget.repairId)),
-    );
+          LoadRepairDetail(
+            repairId: int.parse(widget.repairId),
+            token: '', // Token akan dihandle oleh ApiClient
+          ),
+        );
   }
 
   @override
@@ -138,15 +142,19 @@ class _RepairDetailPageState extends State<RepairDetailPage> {
                           const SizedBox(height: 20),
                           const Divider(),
                           const SizedBox(height: 20),
-                          _buildDetailRow('Vehicle ID', repair.vehicleId.toString()),
+                          _buildDetailRow(
+                              'Vehicle ID', repair.vehicleId.toString()),
                           const SizedBox(height: 12),
-                          _buildDetailRow('Mechanic', repair.mechanicName),
+                          _buildDetailRow('Mechanic',
+                              repair.mechanic?.name ?? 'Unknown Mechanic'),
                           const SizedBox(height: 12),
                           _buildDetailRow('Status', repair.status),
                           const SizedBox(height: 12),
-                          _buildDetailRow('Created At', repair.createdAt.toString().substring(0, 10)),
+                          _buildDetailRow('Created At',
+                              repair.createdAt.toString().substring(0, 10)),
                           const SizedBox(height: 12),
-                          _buildDetailRow('Updated At', repair.updatedAt.toString().substring(0, 10)),
+                          _buildDetailRow('Updated At',
+                              repair.updatedAt.toString().substring(0, 10)),
                         ],
                       ),
                     ),
@@ -168,7 +176,8 @@ class _RepairDetailPageState extends State<RepairDetailPage> {
                       ),
                       child: const Text(
                         'Update Status',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),

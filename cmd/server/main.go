@@ -58,7 +58,7 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
-	vehicleHandler := handler.NewVehicleHandler(vehicleService)
+	vehicleHandler := handler.NewVehicleHandler(vehicleService, repairService)
 	vehicleTypeHandler := handler.NewVehicleTypeHandler(vehicleTypeService)
 	customerHandler := handler.NewCustomerHandler(customerService)
 	transactionHandler := handler.NewTransactionHandler(transactionService)
@@ -212,6 +212,7 @@ func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, au
 				repairs.GET("", repairHandler.ListRepairOrders)
 				repairs.GET("/stats", repairHandler.GetRepairStats)
 				repairs.GET("/mechanic-workload", repairHandler.GetMechanicWorkload)
+				repairs.GET("/vehicles-needing-orders", repairHandler.GetVehiclesNeedingRepairOrders)
 				repairs.GET("/:id", repairHandler.GetRepairOrder)
 				repairs.GET("/code/:code", repairHandler.GetRepairOrderByCode)
 				repairs.GET("/:id/spare-parts", repairHandler.GetRepairSpareParts)

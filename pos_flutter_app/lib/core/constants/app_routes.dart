@@ -7,7 +7,9 @@ import '../../features/customers/presentation/pages/customer_detail_page.dart';
 import '../../features/customers/presentation/pages/customers_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/dashboard/presentation/pages/main_layout.dart';
-import '../../features/repairs/presentation/pages/repairs_page.dart';
+import '../../features/repairs/presentation/pages/create_repair_order_page.dart';
+import '../../features/repairs/presentation/pages/new_repairs_page.dart';
+import '../../features/repairs/presentation/pages/repair_detail_page.dart';
 import '../../features/sales/presentation/pages/point_of_sales_page.dart';
 import '../../features/spare_parts/presentation/pages/spare_parts_page.dart';
 import '../../features/suppliers/presentation/pages/suppliers_page.dart';
@@ -150,7 +152,20 @@ class AppRoutes {
           ),
           GoRoute(
             path: repairs,
-            builder: (context, state) => const RepairsPage(),
+            builder: (context, state) => const NewRepairsPage(),
+            routes: [
+              GoRoute(
+                path: 'add',
+                builder: (context, state) => const CreateRepairOrderPage(),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return RepairDetailPage(repairId: id);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: suppliers,
