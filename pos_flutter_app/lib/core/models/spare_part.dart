@@ -135,6 +135,7 @@ class CreateSparePartRequest {
   final String code;
   final String name;
   final String? description;
+  final String category;
   final String unit;
   final double purchasePrice;
   final double sellingPrice;
@@ -145,6 +146,7 @@ class CreateSparePartRequest {
     required this.code,
     required this.name,
     this.description,
+    required this.category,
     required this.unit,
     required this.purchasePrice,
     required this.sellingPrice,
@@ -157,6 +159,7 @@ class CreateSparePartRequest {
       'code': code,
       'name': name,
       'description': description,
+      'category': category,
       'unit': unit,
       'purchase_price': purchasePrice,
       'selling_price': sellingPrice,
@@ -167,39 +170,100 @@ class CreateSparePartRequest {
 }
 
 class UpdateSparePartRequest {
-  final String? name;
+  final int id;
+  final String code;
+  final String name;
   final String? description;
-  final String? unit;
-  final double? purchasePrice;
-  final double? sellingPrice;
-  final int? stockQuantity;
-  final int? minimumStock;
-  final bool? isActive;
+  final String category;
+  final String unit;
+  final double purchasePrice;
+  final double sellingPrice;
+  final int stockQuantity;
+  final int minimumStock;
 
   const UpdateSparePartRequest({
-    this.name,
+    required this.id,
+    required this.code,
+    required this.name,
     this.description,
-    this.unit,
-    this.purchasePrice,
-    this.sellingPrice,
-    this.stockQuantity,
-    this.minimumStock,
-    this.isActive,
+    required this.category,
+    required this.unit,
+    required this.purchasePrice,
+    required this.sellingPrice,
+    required this.stockQuantity,
+    required this.minimumStock,
   });
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = {};
+    return {
+      'code': code,
+      'name': name,
+      'description': description,
+      'category': category,
+      'unit': unit,
+      'purchase_price': purchasePrice,
+      'selling_price': sellingPrice,
+      'stock_quantity': stockQuantity,
+      'minimum_stock': minimumStock,
+    };
+  }
+}
 
-    if (name != null) data['name'] = name;
-    if (description != null) data['description'] = description;
-    if (unit != null) data['unit'] = unit;
-    if (purchasePrice != null) data['purchase_price'] = purchasePrice;
-    if (sellingPrice != null) data['selling_price'] = sellingPrice;
-    if (stockQuantity != null) data['stock_quantity'] = stockQuantity;
-    if (minimumStock != null) data['minimum_stock'] = minimumStock;
-    if (isActive != null) data['is_active'] = isActive;
+class SparePartStockUpdate {
+  final int quantity;
+  final String operation; // 'add' or 'subtract'
+  final String? notes;
 
-    return data;
+  const SparePartStockUpdate({
+    required this.quantity,
+    required this.operation,
+    this.notes,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'quantity': quantity,
+      'operation': operation,
+      'notes': notes,
+    };
+  }
+}
+
+class SparePartUpdateRequest {
+  final String name;
+  final String? description;
+  final String category;
+  final String unit;
+  final double purchasePrice;
+  final double sellingPrice;
+  final int stockQuantity;
+  final int minimumStock;
+  final bool isActive;
+
+  SparePartUpdateRequest({
+    required this.name,
+    this.description,
+    required this.category,
+    required this.unit,
+    required this.purchasePrice,
+    required this.sellingPrice,
+    required this.stockQuantity,
+    required this.minimumStock,
+    required this.isActive,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'description': description,
+      'category': category,
+      'unit': unit,
+      'purchase_price': purchasePrice,
+      'selling_price': sellingPrice,
+      'stock_quantity': stockQuantity,
+      'minimum_stock': minimumStock,
+      'is_active': isActive,
+    };
   }
 }
 

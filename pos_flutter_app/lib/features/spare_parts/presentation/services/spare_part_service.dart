@@ -27,6 +27,7 @@ class SparePartService {
     int limit = 20,
     String? search,
     String? stockFilter,
+    String? category,
     bool? isActive,
     required String token,
   }) async {
@@ -46,6 +47,10 @@ class SparePartService {
 
       if (stockFilter != null) {
         queryParams['stock_filter'] = stockFilter;
+      }
+
+      if (category != null && category.isNotEmpty) {
+        queryParams['category'] = category;
       }
 
       final response = await _apiClient.get(
@@ -174,6 +179,22 @@ class SparePartService {
       return data.map((json) => SparePart.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Failed to get low stock spare parts: $e');
+    }
+  }
+
+  /// Get list of spare part categories
+  Future<List<String>> getCategories({
+    required String token,
+  }) async {
+    try {
+      final response = await _apiClient.get(
+        ApiEndpoints.sparePartCategories,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      final data = response.data['data']['categories'] as List;
+      return data.map((category) => category.toString()).toList();
+    } catch (e) {
+      throw Exception('Failed to get categories: $e');
     }
   }
 }

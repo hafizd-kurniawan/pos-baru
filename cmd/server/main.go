@@ -36,6 +36,7 @@ func main() {
 	transactionRepo := repository.NewTransactionRepository(db)
 	salesRepo := repository.NewSalesRepository(db.DB)
 	sparePartRepo := repository.NewSparePartRepository(db)
+	sparePartCategoryRepo := repository.NewSparePartCategoryRepository(db.DB.DB)
 	repairRepo := repository.NewRepairRepository(db)
 	dashboardRepo := repository.NewDashboardRepository(db.DB)
 	supplierRepo := repository.NewSupplierRepository(db.DB)
@@ -51,6 +52,7 @@ func main() {
 	transactionService := service.NewTransactionService(transactionRepo, vehicleRepo, customerRepo)
 	salesService := service.NewSalesService(salesRepo, vehicleRepo, customerRepo)
 	sparePartService := service.NewSparePartService(sparePartRepo)
+	sparePartCategoryService := service.NewSparePartCategoryService(sparePartCategoryRepo)
 	repairService := service.NewRepairService(repairRepo, vehicleRepo, userRepo, sparePartRepo)
 	dashboardService := service.NewDashboardService(dashboardRepo)
 	supplierService := service.NewSupplierService(supplierRepo)
@@ -58,19 +60,20 @@ func main() {
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
-	vehicleHandler := handler.NewVehicleHandler(vehicleService, repairService)
+	vehicleHandler := handler.NewVehicleHandler(vehicleService)
 	vehicleTypeHandler := handler.NewVehicleTypeHandler(vehicleTypeService)
 	customerHandler := handler.NewCustomerHandler(customerService)
 	transactionHandler := handler.NewTransactionHandler(transactionService)
 	salesHandler := handler.NewSalesHandler(salesService)
 	sparePartHandler := handler.NewSparePartHandler(sparePartService)
+	sparePartCategoryHandler := handler.NewSparePartCategoryHandler(sparePartCategoryService)
 	repairHandler := handler.NewRepairHandler(repairService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	supplierHandler := handler.NewSupplierHandler(supplierService)
 	userHandler := handler.NewUserHandler(userService)
 
 	// Setup router
-	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, vehicleTypeHandler, customerHandler, transactionHandler, salesHandler, sparePartHandler, repairHandler, dashboardHandler, supplierHandler, userHandler)
+	router := setupRouter(cfg, jwtMiddleware, authHandler, vehicleHandler, vehicleTypeHandler, customerHandler, transactionHandler, salesHandler, sparePartHandler, sparePartCategoryHandler, repairHandler, dashboardHandler, supplierHandler, userHandler)
 
 	// Start server
 	log.Printf("Starting server on port %s", cfg.Server.Port)
@@ -79,7 +82,7 @@ func main() {
 	}
 }
 
-func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, vehicleTypeHandler *handler.VehicleTypeHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler, salesHandler *handler.SalesHandler, sparePartHandler *handler.SparePartHandler, repairHandler *handler.RepairHandler, dashboardHandler *handler.DashboardHandler, supplierHandler *handler.SupplierHandler, userHandler *handler.UserHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, authHandler *handler.AuthHandler, vehicleHandler *handler.VehicleHandler, vehicleTypeHandler *handler.VehicleTypeHandler, customerHandler *handler.CustomerHandler, transactionHandler *handler.TransactionHandler, salesHandler *handler.SalesHandler, sparePartHandler *handler.SparePartHandler, sparePartCategoryHandler *handler.SparePartCategoryHandler, repairHandler *handler.RepairHandler, dashboardHandler *handler.DashboardHandler, supplierHandler *handler.SupplierHandler, userHandler *handler.UserHandler) *gin.Engine {
 	// Set gin mode
 	if cfg.App.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -195,6 +198,7 @@ func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, au
 			spareParts := protected.Group("/spare-parts")
 			{
 				spareParts.GET("", sparePartHandler.ListSpareParts)
+				spareParts.GET("/categories", sparePartHandler.GetCategories)
 				spareParts.GET("/low-stock", sparePartHandler.GetLowStockItems)
 				spareParts.GET("/:id", sparePartHandler.GetSparePart)
 				spareParts.GET("/code/:code", sparePartHandler.GetSparePartByCode)
@@ -206,13 +210,24 @@ func setupRouter(cfg *config.Config, jwtMiddleware *middleware.JWTMiddleware, au
 				spareParts.POST("/bulk-stock-update", jwtMiddleware.RequireCashierOrAdmin(), sparePartHandler.BulkUpdateStock)
 			}
 
+			// Spare Part Categories routes
+			sparePartCategories := protected.Group("/spare-part-categories")
+			{
+				sparePartCategories.GET("", sparePartCategoryHandler.List)
+				sparePartCategories.GET("/all", sparePartCategoryHandler.List)
+				sparePartCategories.GET("/:id", sparePartCategoryHandler.GetByID)
+				sparePartCategories.POST("", jwtMiddleware.RequireCashierOrAdmin(), sparePartCategoryHandler.Create)
+				sparePartCategories.PUT("/:id", jwtMiddleware.RequireCashierOrAdmin(), sparePartCategoryHandler.Update)
+				sparePartCategories.DELETE("/:id", jwtMiddleware.RequireAdmin(), sparePartCategoryHandler.Delete)
+			}
+
 			// Repair routes
 			repairs := protected.Group("/repairs")
 			{
 				repairs.GET("", repairHandler.ListRepairOrders)
 				repairs.GET("/stats", repairHandler.GetRepairStats)
 				repairs.GET("/mechanic-workload", repairHandler.GetMechanicWorkload)
-				repairs.GET("/vehicles-needing-orders", repairHandler.GetVehiclesNeedingRepairOrders)
+				// repairs.GET("/vehicles-needing-orders", repairHandler.GetVehiclesNeedingRepairOrders) // Method not implemented
 				repairs.GET("/:id", repairHandler.GetRepairOrder)
 				repairs.GET("/code/:code", repairHandler.GetRepairOrderByCode)
 				repairs.GET("/:id/spare-parts", repairHandler.GetRepairSpareParts)

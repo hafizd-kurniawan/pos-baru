@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hafizd-kurniawan/pos-baru/internal/domain/models"
 	"github.com/hafizd-kurniawan/pos-baru/internal/repository"
@@ -14,10 +15,12 @@ type SparePartService interface {
 	Update(id int, req *models.SparePartUpdateRequest) (*models.SparePart, error)
 	Delete(id int) error
 	List(page, limit int, isActive *bool) ([]models.SparePart, int64, error)
+	ListWithFilters(page, limit int, search, category string, isActive *bool, statusFilter string) ([]models.SparePart, int64, error)
 	UpdateStock(id int, quantity int, operation string) error
 	GetLowStockItems(page, limit int) ([]models.SparePart, int64, error)
 	CheckStockAvailability(id int, requestedQuantity int) (bool, error)
 	BulkUpdateStock(updates []models.SparePartStockUpdate) error
+	GetCategories() ([]string, error)
 }
 
 type sparePartService struct {
@@ -124,6 +127,66 @@ func (s *sparePartService) List(page, limit int, isActive *bool) ([]models.Spare
 	return spareParts, total, nil
 }
 
+func (s *sparePartService) ListWithFilters(page, limit int, search, category string, isActive *bool, statusFilter string) ([]models.SparePart, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+
+	// Use repository's ListWithFilters method for better performance
+	spareParts, total, err := s.sparePartRepo.ListWithFilters(page, limit, search, category, isActive)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list spare parts with filters: %w", err)
+	}
+
+	// Apply additional status filter if needed
+	if statusFilter != "" {
+		filteredSpareParts := make([]models.SparePart, 0)
+		for _, sp := range spareParts {
+			switch statusFilter {
+			case "low_stock":
+				// Low stock: stock is greater than 0 but less than or equal to minimum stock
+				if sp.IsActive && sp.StockQuantity > 0 && sp.StockQuantity <= sp.MinimumStock {
+					filteredSpareParts = append(filteredSpareParts, sp)
+				}
+			case "out_of_stock":
+				// Out of stock: stock quantity is 0
+				if sp.StockQuantity == 0 {
+					filteredSpareParts = append(filteredSpareParts, sp)
+				}
+			case "in_stock":
+				// In stock: stock is above minimum stock level
+				if sp.IsActive && sp.StockQuantity > sp.MinimumStock {
+					filteredSpareParts = append(filteredSpareParts, sp)
+				}
+			case "available":
+				// Available: active items with stock > 0
+				if sp.IsActive && sp.StockQuantity > 0 {
+					filteredSpareParts = append(filteredSpareParts, sp)
+				}
+			case "inactive":
+				// Inactive items
+				if !sp.IsActive {
+					filteredSpareParts = append(filteredSpareParts, sp)
+				}
+			}
+		}
+		spareParts = filteredSpareParts
+		total = int64(len(filteredSpareParts))
+	}
+
+	return spareParts, total, nil
+}
+
+// Helper function for case-insensitive search
+func containsIgnoreCase(s, substr string) bool {
+	s = strings.ToLower(s)
+	substr = strings.ToLower(substr)
+	return strings.Contains(s, substr)
+}
+
 func (s *sparePartService) UpdateStock(id int, quantity int, operation string) error {
 	// Check if spare part exists
 	_, err := s.sparePartRepo.GetByID(id)
@@ -203,7 +266,7 @@ func (s *sparePartService) BulkUpdateStock(updates []models.SparePartStockUpdate
 		if update.Operation != "add" && update.Operation != "subtract" {
 			return fmt.Errorf("operation must be 'add' or 'subtract' for update %d", i+1)
 		}
-		
+
 		// For subtract operations, check stock availability
 		if update.Operation == "subtract" {
 			available, err := s.sparePartRepo.CheckStockAvailability(i+1, update.Quantity) // This would need to be the actual ID
@@ -223,4 +286,13 @@ func (s *sparePartService) BulkUpdateStock(updates []models.SparePartStockUpdate
 	}
 
 	return nil
+}
+
+func (s *sparePartService) GetCategories() ([]string, error) {
+	categories, err := s.sparePartRepo.GetCategories()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get categories: %w", err)
+	}
+
+	return categories, nil
 }

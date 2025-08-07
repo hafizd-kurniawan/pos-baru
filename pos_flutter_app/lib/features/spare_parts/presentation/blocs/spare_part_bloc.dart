@@ -17,6 +17,8 @@ class LoadSpareParts extends SparePartEvent {
   final int limit;
   final bool? isActive;
   final String? search;
+  final String? status;
+  final String? category;
   final bool refresh;
   final String token;
 
@@ -25,12 +27,15 @@ class LoadSpareParts extends SparePartEvent {
     this.limit = 20,
     this.isActive,
     this.search,
+    this.status,
+    this.category,
     this.refresh = false,
     required this.token,
   });
 
   @override
-  List<Object?> get props => [page, limit, isActive, search, refresh, token];
+  List<Object?> get props =>
+      [page, limit, isActive, search, status, category, refresh, token];
 }
 
 class LoadSparePartDetail extends SparePartEvent {
@@ -105,6 +110,17 @@ class LoadLowStockSpareParts extends SparePartEvent {
   const LoadLowStockSpareParts();
 }
 
+class LoadSparePartCategories extends SparePartEvent {
+  final String token;
+
+  const LoadSparePartCategories({
+    required this.token,
+  });
+
+  @override
+  List<Object?> get props => [token];
+}
+
 // States
 abstract class SparePartState extends Equatable {
   const SparePartState();
@@ -156,6 +172,24 @@ class SparePartOperationSuccess extends SparePartState {
   List<Object?> get props => [message, sparePart];
 }
 
+class SparePartDeleted extends SparePartState {
+  final String message;
+
+  const SparePartDeleted({this.message = 'Spare part deleted successfully'});
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class SparePartCategoriesLoaded extends SparePartState {
+  final List<String> categories;
+
+  const SparePartCategoriesLoaded({required this.categories});
+
+  @override
+  List<Object?> get props => [categories];
+}
+
 // Alias for backward compatibility
 typedef SparePartSuccess = SparePartOperationSuccess;
 
@@ -192,6 +226,7 @@ class SparePartBloc extends Bloc<SparePartEvent, SparePartState> {
     on<DeleteSparePart>(_onDeleteSparePart);
     on<UpdateStock>(_onUpdateStock);
     on<LoadLowStockSpareParts>(_onLoadLowStockSpareParts);
+    on<LoadSparePartCategories>(_onLoadSparePartCategories);
   }
 
   Future<void> _onLoadSpareParts(
@@ -208,6 +243,8 @@ class SparePartBloc extends Bloc<SparePartEvent, SparePartState> {
         limit: event.limit,
         isActive: event.isActive,
         search: event.search,
+        stockFilter: event.status,
+        category: event.category,
         token: event.token,
       );
 
@@ -305,7 +342,7 @@ class SparePartBloc extends Bloc<SparePartEvent, SparePartState> {
         id: event.id,
         token: event.token,
       );
-      emit(const SparePartOperationSuccess(
+      emit(const SparePartDeleted(
         message: 'Spare part berhasil dihapus',
       ));
     } catch (e) {
@@ -341,6 +378,21 @@ class SparePartBloc extends Bloc<SparePartEvent, SparePartState> {
     try {
       final spareParts = await _sparePartService.getLowStockSpareParts();
       emit(LowStockSparePartsLoaded(spareParts: spareParts));
+    } catch (e) {
+      emit(SparePartError(message: e.toString()));
+    }
+  }
+
+  Future<void> _onLoadSparePartCategories(
+    LoadSparePartCategories event,
+    Emitter<SparePartState> emit,
+  ) async {
+    emit(SparePartLoading());
+    try {
+      final categories = await _sparePartService.getCategories(
+        token: event.token,
+      );
+      emit(SparePartCategoriesLoaded(categories: categories));
     } catch (e) {
       emit(SparePartError(message: e.toString()));
     }

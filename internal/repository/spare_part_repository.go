@@ -16,10 +16,12 @@ type SparePartRepository interface {
 	Update(id int, req *models.SparePartUpdateRequest) (*models.SparePart, error)
 	Delete(id int) error
 	List(page, limit int, isActive *bool) ([]models.SparePart, int64, error)
+	ListWithFilters(page, limit int, search, category string, isActive *bool) ([]models.SparePart, int64, error)
 	UpdateStock(id int, quantity int, operation string) error
 	GetLowStockItems(page, limit int) ([]models.SparePart, int64, error)
 	CheckStockAvailability(id int, requestedQuantity int) (bool, error)
 	BulkUpdateStock(updates []models.SparePartStockUpdate) error
+	GetCategories() ([]string, error)
 }
 
 type sparePartRepository struct {
@@ -32,12 +34,12 @@ func NewSparePartRepository(db *database.Database) SparePartRepository {
 
 func (r *sparePartRepository) Create(req *models.SparePartCreateRequest) (*models.SparePart, error) {
 	query := `
-		INSERT INTO spare_parts (code, name, description, unit, purchase_price, selling_price, stock_quantity, minimum_stock)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id, code, name, description, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at`
+		INSERT INTO spare_parts (code, name, description, category, unit, purchase_price, selling_price, stock_quantity, minimum_stock)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, code, name, description, category, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at`
 
 	var sparePart models.SparePart
-	err := r.db.Get(&sparePart, query, req.Code, req.Name, req.Description, req.Unit, req.PurchasePrice, req.SellingPrice, req.StockQuantity, req.MinimumStock)
+	err := r.db.Get(&sparePart, query, req.Code, req.Name, req.Description, req.Category, req.Unit, req.PurchasePrice, req.SellingPrice, req.StockQuantity, req.MinimumStock)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create spare part: %w", err)
 	}
@@ -47,7 +49,7 @@ func (r *sparePartRepository) Create(req *models.SparePartCreateRequest) (*model
 
 func (r *sparePartRepository) GetByID(id int) (*models.SparePart, error) {
 	query := `
-		SELECT id, code, name, description, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at
+		SELECT id, code, name, description, category, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at
 		FROM spare_parts 
 		WHERE id = $1`
 
@@ -65,7 +67,7 @@ func (r *sparePartRepository) GetByID(id int) (*models.SparePart, error) {
 
 func (r *sparePartRepository) GetByCode(code string) (*models.SparePart, error) {
 	query := `
-		SELECT id, code, name, description, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at
+		SELECT id, code, name, description, category, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at
 		FROM spare_parts 
 		WHERE code = $1`
 
@@ -95,6 +97,11 @@ func (r *sparePartRepository) Update(id int, req *models.SparePartUpdateRequest)
 	if req.Description != nil {
 		setParts = append(setParts, fmt.Sprintf("description = $%d", argCounter))
 		args = append(args, *req.Description)
+		argCounter++
+	}
+	if req.Category != nil {
+		setParts = append(setParts, fmt.Sprintf("category = $%d", argCounter))
+		args = append(args, *req.Category)
 		argCounter++
 	}
 	if req.Unit != nil {
@@ -135,7 +142,7 @@ func (r *sparePartRepository) Update(id int, req *models.SparePartUpdateRequest)
 		UPDATE spare_parts 
 		SET %s
 		WHERE id = $%d
-		RETURNING id, code, name, description, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at`,
+		RETURNING id, code, name, description, category, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at`,
 		strings.Join(setParts, ", "), argCounter)
 
 	var sparePart models.SparePart
@@ -149,7 +156,7 @@ func (r *sparePartRepository) Update(id int, req *models.SparePartUpdateRequest)
 
 func (r *sparePartRepository) Delete(id int) error {
 	query := `DELETE FROM spare_parts WHERE id = $1`
-	
+
 	result, err := r.db.Exec(query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete spare part: %w", err)
@@ -195,7 +202,7 @@ func (r *sparePartRepository) List(page, limit int, isActive *bool) ([]models.Sp
 
 	// Get spare parts with pagination
 	query := fmt.Sprintf(`
-		SELECT id, code, name, description, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at
+		SELECT id, code, name, description, category, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at
 		FROM spare_parts
 		%s
 		ORDER BY created_at DESC
@@ -219,7 +226,7 @@ func (r *sparePartRepository) UpdateStock(id int, quantity int, operation string
 	} else {
 		return fmt.Errorf("invalid operation: %s", operation)
 	}
-	
+
 	result, err := r.db.Exec(query, quantity, id)
 	if err != nil {
 		return fmt.Errorf("failed to update spare part stock: %w", err)
@@ -253,7 +260,7 @@ func (r *sparePartRepository) GetLowStockItems(page, limit int) ([]models.SpareP
 
 	// Get low stock items with pagination
 	query := `
-		SELECT id, code, name, description, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at
+		SELECT id, code, name, description, category, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at
 		FROM spare_parts
 		WHERE stock_quantity <= minimum_stock AND is_active = true
 		ORDER BY (stock_quantity - minimum_stock) ASC, created_at DESC
@@ -270,7 +277,7 @@ func (r *sparePartRepository) GetLowStockItems(page, limit int) ([]models.SpareP
 
 func (r *sparePartRepository) CheckStockAvailability(id int, requestedQuantity int) (bool, error) {
 	query := `SELECT stock_quantity FROM spare_parts WHERE id = $1 AND is_active = true`
-	
+
 	var currentStock int
 	err := r.db.Get(&currentStock, query, id)
 	if err != nil {
@@ -323,4 +330,81 @@ func (r *sparePartRepository) BulkUpdateStock(updates []models.SparePartStockUpd
 	}
 
 	return nil
+}
+
+// GetCategories retrieves unique categories from spare parts
+func (r *sparePartRepository) GetCategories() ([]string, error) {
+	query := `
+		SELECT DISTINCT category 
+		FROM spare_parts 
+		WHERE category IS NOT NULL AND category != '' AND is_active = true
+		ORDER BY category`
+
+	var categories []string
+	err := r.db.Select(&categories, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get categories: %w", err)
+	}
+
+	return categories, nil
+}
+
+func (r *sparePartRepository) ListWithFilters(page, limit int, search, category string, isActive *bool) ([]models.SparePart, int64, error) {
+	offset := (page - 1) * limit
+
+	// Build WHERE clause dynamically
+	conditions := []string{}
+	args := []interface{}{}
+	paramCount := 1
+
+	if isActive != nil {
+		conditions = append(conditions, fmt.Sprintf("is_active = $%d", paramCount))
+		args = append(args, *isActive)
+		paramCount++
+	}
+
+	if search != "" {
+		conditions = append(conditions, fmt.Sprintf("(name ILIKE $%d OR code ILIKE $%d OR category ILIKE $%d)", paramCount, paramCount+1, paramCount+2))
+		searchPattern := "%" + search + "%"
+		args = append(args, searchPattern, searchPattern, searchPattern)
+		paramCount += 3
+	}
+
+	if category != "" {
+		conditions = append(conditions, fmt.Sprintf("category ILIKE $%d", paramCount))
+		args = append(args, category)
+		paramCount++
+	}
+
+	var whereClause string
+	if len(conditions) > 0 {
+		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	// Get total count
+	var total int64
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM spare_parts %s", whereClause)
+	err := r.db.Get(&total, countQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count spare parts: %w", err)
+	}
+
+	// Add pagination parameters
+	args = append(args, limit, offset)
+
+	// Get spare parts with filtering and pagination
+	query := fmt.Sprintf(`
+		SELECT id, code, name, description, category, unit, purchase_price, selling_price, stock_quantity, minimum_stock, is_active, created_at, updated_at
+		FROM spare_parts
+		%s
+		ORDER BY created_at DESC
+		LIMIT $%d OFFSET $%d`, whereClause, paramCount, paramCount+1)
+
+	var spareParts []models.SparePart
+	err = r.db.Select(&spareParts, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list spare parts: %w", err)
+	}
+
+	return spareParts, total, nil
 }

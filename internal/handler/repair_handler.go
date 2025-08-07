@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -147,7 +146,7 @@ func (h *RepairHandler) ListRepairOrders(c *gin.Context) {
 
 	// Calculate pagination info
 	totalPages := (total + limit - 1) / limit
-
+	
 	utils.SendSuccess(c, "Repair orders retrieved successfully", gin.H{
 		"repairs": repairs,
 		"pagination": gin.H{
@@ -220,28 +219,13 @@ func (h *RepairHandler) UpdateRepairProgress(c *gin.Context) {
 		return
 	}
 
-	// Debug logging
-	fmt.Printf("UpdateRepairProgress: ID=%d, Status=%s, ActualCost=%v, Notes=%v\n",
-		id, req.Status, req.ActualCost, req.Notes)
-
 	err = h.repairService.UpdateRepairProgress(id, &req)
 	if err != nil {
-		fmt.Printf("UpdateRepairProgress error: %v\n", err)
 		utils.SendError(c, http.StatusInternalServerError, "Failed to update repair progress", err.Error())
 		return
 	}
 
-	// Get updated repair order to return to client
-	updatedRepair, err := h.repairService.GetRepairOrder(id)
-	if err != nil {
-		fmt.Printf("GetRepairOrder error after update: %v\n", err)
-		utils.SendError(c, http.StatusInternalServerError, "Failed to get updated repair order", err.Error())
-		return
-	}
-
-	fmt.Printf("UpdateRepairProgress success: returning repair with ID=%d, Status=%s\n",
-		updatedRepair.ID, updatedRepair.Status)
-	utils.SendSuccess(c, "Repair progress updated successfully", updatedRepair)
+	utils.SendSuccess(c, "Repair progress updated successfully", nil)
 }
 
 // DeleteRepairOrder deletes a repair order
@@ -429,23 +413,4 @@ func (h *RepairHandler) GetMechanicWorkload(c *gin.Context) {
 	}
 
 	utils.SendSuccess(c, "Mechanic workload retrieved successfully", workload)
-}
-
-// GetVehiclesNeedingRepairOrders gets vehicles with in_repair status that don't have active repair orders
-// @Summary Get vehicles needing repair orders
-// @Description Get vehicles that are marked as in_repair but don't have active repair orders
-// @Tags repairs
-// @Accept json
-// @Produce json
-// @Success 200 {object} utils.Response{data=[]models.Vehicle}
-// @Failure 500 {object} utils.Response
-// @Router /repairs/vehicles-needing-orders [get]
-func (h *RepairHandler) GetVehiclesNeedingRepairOrders(c *gin.Context) {
-	vehicles, err := h.repairService.GetVehiclesNeedingRepairOrders()
-	if err != nil {
-		utils.SendError(c, http.StatusInternalServerError, "Failed to get vehicles needing repair orders", err.Error())
-		return
-	}
-
-	utils.SendSuccess(c, "Vehicles needing repair orders retrieved successfully", vehicles)
 }

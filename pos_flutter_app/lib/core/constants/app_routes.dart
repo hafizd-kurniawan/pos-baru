@@ -11,6 +11,10 @@ import '../../features/repairs/presentation/pages/create_repair_order_page.dart'
 import '../../features/repairs/presentation/pages/new_repairs_page.dart';
 import '../../features/repairs/presentation/pages/repair_detail_page.dart';
 import '../../features/sales/presentation/pages/point_of_sales_page.dart';
+// Spare part category pages will be imported when needed
+import '../../features/spare_parts/presentation/pages/add_spare_part_page.dart';
+import '../../features/spare_parts/presentation/pages/edit_spare_part_page.dart';
+import '../../features/spare_parts/presentation/pages/spare_part_detail_page.dart';
 import '../../features/spare_parts/presentation/pages/spare_parts_page.dart';
 import '../../features/suppliers/presentation/pages/suppliers_page.dart';
 import '../../features/transactions/presentation/pages/add_transaction_page.dart';
@@ -40,6 +44,8 @@ class AppRoutes {
   static const String spareParts = '/spare-parts';
   static const String sparePartDetail = '/spare-parts/:id';
   static const String addSparePart = '/spare-parts/add';
+  static const String sparePartCategories = '/spare-part-categories';
+  static const String addSparePartCategory = '/spare-part-categories/add';
   static const String repairs = '/repairs';
   static const String repairDetail = '/repairs/:id';
   static const String addRepair = '/repairs/add';
@@ -149,7 +155,51 @@ class AppRoutes {
           GoRoute(
             path: spareParts,
             builder: (context, state) => const SparePartsPage(),
+            routes: [
+              GoRoute(
+                path: 'add',
+                builder: (context, state) => const AddSparePartPage(),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['id']!);
+                  return SparePartDetailPage(sparePartId: id);
+                },
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['id']!);
+                      return EditSparePartPage(sparePartId: id);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
+          // Spare Part Categories routes will be added later
+          /*
+          GoRoute(
+            path: sparePartCategories,
+            builder: (context, state) => const SparePartCategoriesPage(),
+            routes: [
+              GoRoute(
+                path: 'add',
+                builder: (context, state) => const AddSparePartCategoryPage(),
+              ),
+              GoRoute(
+                path: ':id/edit',
+                builder: (context, state) {
+                  final id = int.parse(state.pathParameters['id']!);
+                  return EditSparePartCategoryPage(
+                    categoryId: id,
+                  );
+                },
+              ),
+            ],
+          ),
+          */
           GoRoute(
             path: repairs,
             builder: (context, state) => const NewRepairsPage(),

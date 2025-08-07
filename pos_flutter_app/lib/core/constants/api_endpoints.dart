@@ -51,6 +51,7 @@ class ApiEndpoints {
 
   // Spare parts endpoints
   static const String spareParts = '/api/spare-parts';
+  static const String sparePartCategories = '/api/spare-parts/categories';
   static const String lowStockSpareParts = '/api/spare-parts/low-stock';
   static const String bulkStockUpdate = '/api/spare-parts/bulk-stock-update';
   static String sparePartById(int id) => '/api/spare-parts/$id';

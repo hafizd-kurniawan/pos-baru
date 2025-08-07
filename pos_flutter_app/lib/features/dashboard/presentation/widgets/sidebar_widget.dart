@@ -109,7 +109,19 @@ class SidebarWidget extends StatelessWidget {
                   title: 'Spare Parts',
                   route: AppRoutes.spareParts,
                   isSelected:
-                      currentLocation?.startsWith('/spare-parts') == true,
+                      currentLocation?.startsWith('/spare-parts') == true &&
+                          !currentLocation!.contains('categories'),
+                  context: context,
+                ),
+
+                _buildNavItem(
+                  icon: Icons.category_outlined,
+                  selectedIcon: Icons.category,
+                  title: 'Kategori Parts',
+                  route: AppRoutes.sparePartCategories,
+                  isSelected:
+                      currentLocation?.startsWith('/spare-part-categories') ==
+                          true,
                   context: context,
                 ),
 
