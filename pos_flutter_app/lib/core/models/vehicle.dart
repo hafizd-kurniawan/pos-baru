@@ -302,6 +302,8 @@ class CreateVehicleRequest {
   final String? fuelType;
   final String? transmissionType;
   final String? licensePlate;
+  final String? chassisNumber;
+  final String? engineNumber;
   final int? odometer;
   final String sourceType;
   final int? sourceId;
@@ -319,6 +321,8 @@ class CreateVehicleRequest {
     this.fuelType,
     this.transmissionType,
     this.licensePlate,
+    this.chassisNumber,
+    this.engineNumber,
     this.odometer,
     required this.sourceType,
     this.sourceId,
@@ -338,6 +342,8 @@ class CreateVehicleRequest {
       'fuel_type': fuelType,
       'transmission_type': transmissionType,
       'license_plate': licensePlate,
+      'chassis_number': chassisNumber,
+      'engine_number': engineNumber,
       'odometer': odometer,
       'source_type': sourceType,
       'source_id': sourceId,

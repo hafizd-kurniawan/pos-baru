@@ -127,10 +127,28 @@ func (r *transactionRepository) GetSalesTransactionByID(id int) (*models.SalesTr
 			st.id, st.invoice_number, st.transaction_date, st.customer_id, st.vehicle_id,
 			st.hpp_price, st.selling_price, st.profit, st.payment_method, st.payment_status,
 			st.down_payment, st.remaining_payment, st.notes, st.processed_by, st.created_at, st.updated_at,
-			v.id as "vehicle.id", v.code as "vehicle.code", v.model as "vehicle.model", v.year as "vehicle.year",
-			c.id as "customer.id", c.name as "customer.name", c.phone as "customer.phone"
+			v.id as "vehicle.id", v.code as "vehicle.code", v.brand_id as "vehicle.brand_id", 
+			v.model as "vehicle.model", v.year as "vehicle.year", v.color as "vehicle.color",
+			v.engine_capacity as "vehicle.engine_capacity", v.fuel_type as "vehicle.fuel_type",
+			v.transmission_type as "vehicle.transmission_type", v.license_plate as "vehicle.license_plate",
+			v.chassis_number as "vehicle.chassis_number", v.engine_number as "vehicle.engine_number",
+			v.odometer as "vehicle.odometer", v.source_type as "vehicle.source_type", 
+			v.source_id as "vehicle.source_id", v.purchase_price as "vehicle.purchase_price",
+			v.condition_status as "vehicle.condition_status", v.status as "vehicle.status",
+			v.repair_cost as "vehicle.repair_cost", v.hpp_price as "vehicle.hpp_price",
+			v.selling_price as "vehicle.selling_price", v.sold_price as "vehicle.sold_price",
+			v.sold_date as "vehicle.sold_date", v.notes as "vehicle.notes",
+			v.created_by as "vehicle.created_by", v.created_at as "vehicle.created_at", 
+			v.updated_at as "vehicle.updated_at",
+			vb.id as "vehicle.brand.id", vb.name as "vehicle.brand.name", vb.type_id as "vehicle.brand.type_id",
+			vb.created_at as "vehicle.brand.created_at",
+			c.id as "customer.id", c.name as "customer.name", c.phone as "customer.phone",
+			c.email as "customer.email", c.address as "customer.address", 
+			c.id_card_number as "customer.id_card_number", c.created_at as "customer.created_at",
+			c.updated_at as "customer.updated_at"
 		FROM sales_transactions st
 		JOIN vehicles v ON st.vehicle_id = v.id
+		LEFT JOIN vehicle_brands vb ON v.brand_id = vb.id
 		JOIN customers c ON st.customer_id = c.id
 		WHERE st.id = $1`
 

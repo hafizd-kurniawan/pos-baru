@@ -1,208 +1,378 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../../../core/constants/app_routes.dart';
+import '../../../../core/models/spare_part.dart';
+import '../../../../core/storage/storage_service.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../blocs/spare_part_bloc.dart';
+import '../widgets/enhanced_spare_part_card.dart';
+import '../widgets/spare_part_filter_chips.dart';
 
 class SparePartsPage extends StatefulWidget {
-  const SparePartsPage({super.key});
+  const SparePartsPage({Key? key}) : super(key: key);
 
   @override
   State<SparePartsPage> createState() => _SparePartsPageState();
 }
 
 class _SparePartsPageState extends State<SparePartsPage> {
-  final TextEditingController _searchController = TextEditingController();
+  final _searchController = TextEditingController();
+  String? _selectedStatus;
+  String? _selectedCategory;
+  List<String> _availableCategories = [];
+  final ScrollController _scrollController = ScrollController();
+  bool _hasMore = true;
+  int _currentPage = 1;
+  List<SparePart> _spareParts = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    context.read<SparePartBloc>().add(LoadSpareParts());
+    _loadSpareParts();
+    _loadCategories();
+    _scrollController.addListener(_onScroll);
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _loadSpareParts({bool refresh = false}) async {
+    if (refresh) {
+      _currentPage = 1;
+      _spareParts.clear();
+    }
+
+    final token = await StorageService.getToken();
+    if (token != null && mounted) {
+      context.read<SparePartBloc>().add(LoadSpareParts(
+            page: _currentPage,
+            limit: 20,
+            refresh: refresh,
+            status: _selectedStatus,
+            category: _selectedCategory,
+            search: _searchQuery.length >= 3 ? _searchQuery : null,
+            token: token,
+          ));
+    }
+  }
+
+  void _loadCategories() async {
+    final token = await StorageService.getToken();
+    if (token != null && mounted) {
+      context.read<SparePartBloc>().add(LoadSparePartCategories(token: token));
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.8 &&
+        _hasMore) {
+      _currentPage++;
+      _loadSpareParts();
+    }
+  }
+
+  void _onStatusFilterChanged(String? status) {
+    setState(() {
+      _selectedStatus = status;
+    });
+    _loadSpareParts(refresh: true);
+  }
+
+  void _onCategoryFilterChanged(String? category) {
+    setState(() {
+      _selectedCategory = category;
+    });
+    _loadSpareParts(refresh: true);
+  }
+
+  void _showSparePartDetails(SparePart sparePart) {
+    context.push('${AppRoutes.spareParts}/${sparePart.id}');
+  }
+
+  void _editSparePart(SparePart sparePart) {
+    context.push('${AppRoutes.spareParts}/${sparePart.id}/edit');
+  }
+
+  void _deleteSparePart(SparePart sparePart) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Spare Part'),
+        content: Text('Apakah Anda yakin ingin menghapus ${sparePart.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final token = await StorageService.getToken();
+              if (token != null && mounted) {
+                context.read<SparePartBloc>().add(
+                      DeleteSparePart(id: sparePart.id, token: token),
+                    );
+              }
+              Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text;
+    if (query.length >= 3 || query.isEmpty) {
+      if (query != _searchQuery) {
+        setState(() {
+          _searchQuery = query;
+        });
+        // Add debounce for search
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (_searchController.text == query && mounted) {
+            _loadSpareParts(refresh: true);
+          }
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Spare Parts',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => context.go(AppRoutes.addSparePart),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Cari spare part...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-              ),
-              onChanged: (value) {
-                // TODO: Implement search
-              },
-            ),
-          ),
-          Expanded(
-            child: BlocBuilder<SparePartBloc, SparePartState>(
-              builder: (context, state) {
-                if (state is SparePartLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (state is SparePartError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error: ${state.message}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            context.read<SparePartBloc>().add(LoadSpareParts());
-                          },
-                          child: const Text('Coba Lagi'),
-                        ),
-                      ],
+      backgroundColor: AppTheme.backgroundColor,
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Manajemen Spare Part',
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
                     ),
-                  );
-                } else if (state is SparePartsLoaded) {
-                  if (state.spareParts.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.inventory_2_outlined,
-                            size: 64,
-                            color: Colors.grey[400],
+                    const SizedBox(height: 4),
+                    Text(
+                      'Kelola inventori spare part dan komponen',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textSecondary,
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Belum ada spare part',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tambah spare part pertama Anda',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () => context.go(AppRoutes.addSparePart),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryColor,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Tambah Spare Part'),
-                          ),
-                        ],
+                    ),
+                  ],
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('${AppRoutes.spareParts}/add'),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Tambah Spare Part'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Search and Filters
+            Row(
+              children: [
+                // Search
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Cari spare part...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onSubmitted: (_) => _loadSpareParts(refresh: true),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: () => _loadSpareParts(refresh: true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppTheme.primaryColor,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Cari'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Filter Chips
+            SparePartFilterChips(
+              selectedStatus: _selectedStatus,
+              selectedCategory: _selectedCategory,
+              availableCategories: _availableCategories,
+              onStatusChanged: _onStatusFilterChanged,
+              onCategoryChanged: _onCategoryFilterChanged,
+            ),
+            const SizedBox(height: 24),
+
+            // Content
+            Expanded(
+              child: BlocConsumer<SparePartBloc, SparePartState>(
+                listener: (context, state) {
+                  if (state is SparePartError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } else if (state is SparePartsLoaded) {
+                    if (_currentPage == 1) {
+                      _spareParts = List.from(state.spareParts);
+                    } else {
+                      _spareParts.addAll(state.spareParts);
+                    }
+                    _hasMore = state.hasMore;
+                  } else if (state is SparePartCategoriesLoaded) {
+                    setState(() {
+                      _availableCategories = state.categories;
+                    });
+                  } else if (state is SparePartDeleted) {
+                    _loadSpareParts(refresh: true);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Spare part berhasil dihapus'),
+                        backgroundColor: Colors.green,
                       ),
                     );
                   }
+                },
+                builder: (context, state) {
+                  if (state is SparePartLoading && _currentPage == 1) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: state.spareParts.length,
-                    itemBuilder: (context, index) {
-                      final sparePart = state.spareParts[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.inventory_2,
-                              color: AppTheme.primaryColor,
-                              size: 28,
-                            ),
-                          ),
-                          title: Text(
-                            sparePart.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(
-                                'Rp ${sparePart.price.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  color: AppTheme.secondaryColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text('Stock: ${sparePart.stock}'),
-                            ],
-                          ),
-                          trailing: const Icon(Icons.arrow_forward_ios),
-                          onTap: () {
-                            context.go('${AppRoutes.spareParts}/${sparePart.id}');
-                          },
-                        ),
-                      );
-                    },
-                  );
-                }
+                  if (_spareParts.isEmpty && state is! SparePartLoading) {
+                    return _buildEmptyState();
+                  }
 
-                return const SizedBox.shrink();
-              },
+                  return _buildGridView();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Belum ada spare part',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tambahkan spare part pertama Anda',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[500],
+                ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => context.push('${AppRoutes.spareParts}/add'),
+            icon: const Icon(Icons.add),
+            label: const Text('Tambah Spare Part'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildGridView() {
+    return GridView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.only(bottom: 24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 5,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.8,
+      ),
+      itemCount: _spareParts.length + (_hasMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= _spareParts.length) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        final sparePart = _spareParts[index];
+        return EnhancedSparePartCard(
+          sparePart: sparePart,
+          onTap: () => _showSparePartDetails(sparePart),
+          onViewDetail: () => _showSparePartDetails(sparePart),
+          onEdit: () => _editSparePart(sparePart),
+          onDelete: () => _deleteSparePart(sparePart),
+        );
+      },
     );
   }
 }

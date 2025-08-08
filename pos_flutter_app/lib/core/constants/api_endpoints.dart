@@ -51,6 +51,7 @@ class ApiEndpoints {
 
   // Spare parts endpoints
   static const String spareParts = '/api/spare-parts';
+  static const String sparePartCategories = '/api/spare-parts/categories';
   static const String lowStockSpareParts = '/api/spare-parts/low-stock';
   static const String bulkStockUpdate = '/api/spare-parts/bulk-stock-update';
   static String sparePartById(int id) => '/api/spare-parts/$id';
@@ -61,14 +62,27 @@ class ApiEndpoints {
 
   // Repair endpoints
   static const String repairs = '/api/repairs';
+  static const String repairOrders = '/api/repair-orders';
   static const String repairStats = '/api/repairs/stats';
   static const String mechanicWorkload = '/api/repairs/mechanic-workload';
   static String repairById(int id) => '/api/repairs/$id';
+  static String repairDetail(int id) => '/api/repairs/$id';
   static String repairByCode(String code) => '/api/repairs/code/$code';
   static String updateRepairProgress(int id) => '/api/repairs/$id/progress';
+  static String repairOrderProgress(int id) =>
+      '/api/repair-orders/$id/progress';
+  static String repairOrderComplete(int id) =>
+      '/api/repair-orders/$id/complete';
   static String repairSpareParts(int id) => '/api/repairs/$id/spare-parts';
   static String removeRepairSparePart(int id, int sparePartId) =>
       '/api/repairs/$id/spare-parts/$sparePartId';
+  static String repairItems(int repairId) =>
+      '/api/repairs/$repairId/spare-parts';
+  static String repairItem(int repairId, int itemId) =>
+      '/api/repairs/$repairId/spare-parts/$itemId';
+  static String startRepair(int repairId) => '/api/repairs/$repairId/start';
+  static String completeRepair(int repairId) =>
+      '/api/repairs/$repairId/complete';
 
   // Supplier endpoints
   static const String suppliers = '/api/suppliers';

@@ -25,6 +25,8 @@ func NewSparePartHandler(sparePartService service.SparePartService) *SparePartHa
 func (h *SparePartHandler) ListSpareParts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.Query("search")
+	category := c.Query("category")
 
 	// Parse active filter
 	var isActive *bool
@@ -34,7 +36,27 @@ func (h *SparePartHandler) ListSpareParts(c *gin.Context) {
 		}
 	}
 
-	spareParts, total, err := h.sparePartService.List(page, limit, isActive)
+	// Parse status filter for UI convenience
+	statusFilter := c.Query("status")
+	// Also support stock_filter parameter for backward compatibility
+	if stockFilter := c.Query("stock_filter"); stockFilter != "" {
+		statusFilter = stockFilter
+	}
+
+	if statusFilter != "" {
+		switch statusFilter {
+		case "available":
+			active := true
+			isActive = &active
+		case "inactive":
+			active := false
+			isActive = &active
+		case "low_stock", "out_of_stock", "in_stock":
+			// These will be handled by service layer based on stock quantities
+		}
+	}
+
+	spareParts, total, err := h.sparePartService.ListWithFilters(page, limit, search, category, isActive, statusFilter)
 	if err != nil {
 		utils.SendError(c, http.StatusInternalServerError, "Failed to get spare parts", err.Error())
 		return
@@ -295,7 +317,7 @@ func (h *SparePartHandler) CheckStockAvailability(c *gin.Context) {
 	}
 
 	utils.SendSuccess(c, "Stock availability checked successfully", gin.H{
-		"available":         available,
+		"available":          available,
 		"requested_quantity": quantity,
 	})
 }
@@ -329,5 +351,18 @@ func (h *SparePartHandler) BulkUpdateStock(c *gin.Context) {
 
 	utils.SendSuccess(c, "Bulk stock update completed successfully", gin.H{
 		"updates_processed": len(req.Updates),
+	})
+}
+
+// GetCategories handles GET /api/spare-parts/categories
+func (h *SparePartHandler) GetCategories(c *gin.Context) {
+	categories, err := h.sparePartService.GetCategories()
+	if err != nil {
+		utils.SendError(c, http.StatusInternalServerError, "Failed to get categories", err.Error())
+		return
+	}
+
+	utils.SendSuccess(c, "Categories retrieved successfully", gin.H{
+		"categories": categories,
 	})
 }

@@ -10,10 +10,12 @@ import 'features/auth/presentation/blocs/auth_bloc.dart';
 import 'features/customers/presentation/blocs/customer_bloc.dart';
 import 'features/customers/services/customer_service.dart';
 import 'features/dashboard/presentation/blocs/dashboard_bloc.dart';
+import 'features/repairs/presentation/blocs/mechanic_repair_bloc.dart';
 import 'features/repairs/presentation/blocs/repair_bloc.dart';
 import 'features/sales/presentation/blocs/sales_bloc.dart';
 import 'features/sales/services/sales_service.dart';
 import 'features/spare_parts/presentation/blocs/spare_part_bloc.dart';
+import 'features/spare_parts/presentation/services/spare_part_service.dart';
 import 'features/suppliers/presentation/blocs/supplier_bloc.dart';
 import 'features/transactions/presentation/blocs/transaction_bloc.dart';
 import 'features/users/presentation/blocs/user_bloc.dart';
@@ -108,13 +110,14 @@ class POSApp extends StatelessWidget {
           ),
           BlocProvider(
             create: (context) => SparePartBloc(
-              apiClient: context.read<ApiClient>(),
+              sparePartService: SparePartService(),
             ),
           ),
           BlocProvider(
-            create: (context) => RepairBloc(
-              apiClient: context.read<ApiClient>(),
-            ),
+            create: (context) => RepairBloc(),
+          ),
+          BlocProvider(
+            create: (context) => MechanicRepairBloc(),
           ),
           BlocProvider(
             create: (context) => SupplierBloc(
