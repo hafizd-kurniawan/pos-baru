@@ -22,6 +22,12 @@ type SparePartRepository interface {
 	CheckStockAvailability(id int, requestedQuantity int) (bool, error)
 	BulkUpdateStock(updates []models.SparePartStockUpdate) error
 	GetCategories() ([]string, error)
+	// Category management methods
+	GetCategoriesWithPagination(page, limit int, search string) ([]models.CategoryInfo, int64, error)
+	CreateCategory(name, description string) error
+	UpdateCategory(id int, name, description string) error
+	DeleteCategory(id int) error
+	GetCategoryStats() ([]models.CategoryStats, error)
 }
 
 type sparePartRepository struct {
@@ -335,10 +341,10 @@ func (r *sparePartRepository) BulkUpdateStock(updates []models.SparePartStockUpd
 // GetCategories retrieves unique categories from spare parts
 func (r *sparePartRepository) GetCategories() ([]string, error) {
 	query := `
-		SELECT DISTINCT category 
-		FROM spare_parts 
-		WHERE category IS NOT NULL AND category != '' AND is_active = true
-		ORDER BY category`
+		SELECT name 
+		FROM spare_part_categories 
+		WHERE is_active = true
+		ORDER BY name`
 
 	var categories []string
 	err := r.db.Select(&categories, query)
@@ -407,4 +413,183 @@ func (r *sparePartRepository) ListWithFilters(page, limit int, search, category 
 	}
 
 	return spareParts, total, nil
+}
+
+// Category management implementations
+
+func (r *sparePartRepository) GetCategoriesWithPagination(page, limit int, search string) ([]models.CategoryInfo, int64, error) {
+	offset := (page - 1) * limit
+
+	// Get total count of active categories
+	var total int64
+	countQuery := `SELECT COUNT(*) FROM spare_part_categories WHERE is_active = true`
+	countArgs := []interface{}{}
+
+	if search != "" {
+		countQuery += " AND name ILIKE $1"
+		countArgs = append(countArgs, "%"+search+"%")
+	}
+
+	err := r.db.Get(&total, countQuery, countArgs...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count categories: %w", err)
+	}
+
+	// Get categories with spare parts count
+	query := `
+		SELECT 
+			c.id,
+			c.name,
+			COALESCE(c.description, '') as description,
+			COALESCE(COUNT(sp.id), 0) as spare_part_count,
+			c.is_active,
+			c.created_at,
+			c.updated_at
+		FROM spare_part_categories c
+		LEFT JOIN spare_parts sp ON c.name = sp.category
+		WHERE c.is_active = true
+	`
+	queryArgs := []interface{}{}
+
+	if search != "" {
+		query += " AND c.name ILIKE $1"
+		queryArgs = append(queryArgs, "%"+search+"%")
+	}
+
+	query += " GROUP BY c.id, c.name, c.description, c.is_active, c.created_at, c.updated_at"
+	query += " ORDER BY c.created_at DESC"
+	query += " LIMIT $" + fmt.Sprintf("%d", len(queryArgs)+1) + " OFFSET $" + fmt.Sprintf("%d", len(queryArgs)+2)
+	queryArgs = append(queryArgs, limit, offset)
+
+	var categories []models.CategoryInfo
+	err = r.db.Select(&categories, query, queryArgs...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get categories: %w", err)
+	}
+
+	return categories, total, nil
+}
+
+func (r *sparePartRepository) CreateCategory(name, description string) error {
+	// Check if category already exists
+	var count int
+	err := r.db.Get(&count, "SELECT COUNT(*) FROM spare_part_categories WHERE name = $1 AND is_active = true", name)
+	if err != nil {
+		return fmt.Errorf("failed to check category existence: %w", err)
+	}
+
+	if count > 0 {
+		return fmt.Errorf("category '%s' already exists", name)
+	}
+
+	// Insert into spare_part_categories table
+	query := `
+		INSERT INTO spare_part_categories (name, description, is_active, created_at, updated_at) 
+		VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`
+
+	_, err = r.db.Exec(query, name, description)
+	if err != nil {
+		return fmt.Errorf("failed to create category: %v", err)
+	}
+
+	return nil
+}
+
+func (r *sparePartRepository) UpdateCategory(id int, name, description string) error {
+	// Check if new name already exists (except for current category)
+	var count int
+	err := r.db.Get(&count, "SELECT COUNT(*) FROM spare_part_categories WHERE name = $1 AND id != $2 AND is_active = true", name, id)
+	if err != nil {
+		return fmt.Errorf("failed to check category name uniqueness: %w", err)
+	}
+
+	if count > 0 {
+		return fmt.Errorf("category name '%s' already exists", name)
+	}
+
+	// Get the old category name first
+	var oldCategory string
+	err = r.db.Get(&oldCategory, "SELECT name FROM spare_part_categories WHERE id = $1 AND is_active = true", id)
+	if err != nil {
+		return fmt.Errorf("category not found: %w", err)
+	}
+
+	// Update the category in spare_part_categories table
+	_, err = r.db.Exec(`
+		UPDATE spare_part_categories 
+		SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = $3 AND is_active = true
+	`, name, description, id)
+	if err != nil {
+		return fmt.Errorf("failed to update category: %w", err)
+	}
+
+	// Update all spare parts that use this category
+	_, err = r.db.Exec(`
+		UPDATE spare_parts 
+		SET category = $1, updated_at = CURRENT_TIMESTAMP 
+		WHERE category = $2
+	`, name, oldCategory)
+	if err != nil {
+		return fmt.Errorf("failed to update spare parts category reference: %w", err)
+	}
+
+	return nil
+}
+
+func (r *sparePartRepository) DeleteCategory(id int) error {
+	// Get the category name first
+	var categoryName string
+	err := r.db.Get(&categoryName, "SELECT name FROM spare_part_categories WHERE id = $1 AND is_active = true", id)
+	if err != nil {
+		return fmt.Errorf("category not found: %w", err)
+	}
+
+	// Check if category is being used by spare parts
+	var count int
+	err = r.db.Get(&count, "SELECT COUNT(*) FROM spare_parts WHERE category = $1", categoryName)
+	if err != nil {
+		return fmt.Errorf("failed to check category usage: %w", err)
+	}
+
+	if count > 0 {
+		return fmt.Errorf("cannot delete category '%s' because it is being used by %d spare parts", categoryName, count)
+	}
+
+	// Soft delete: set is_active to false instead of deleting the record
+	_, err = r.db.Exec(`
+		UPDATE spare_part_categories 
+		SET is_active = false, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = $1
+	`, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete category: %w", err)
+	}
+
+	return nil
+}
+
+func (r *sparePartRepository) GetCategoryStats() ([]models.CategoryStats, error) {
+	query := `
+		SELECT 
+			category as name,
+			COUNT(*) as spare_part_count,
+			COALESCE(SUM(stock_quantity), 0) as total_stock,
+			COUNT(CASE WHEN stock_quantity <= minimum_stock THEN 1 END) as low_stock_count,
+			COALESCE(SUM(selling_price * stock_quantity), 0) as total_value,
+			COALESCE(AVG(selling_price), 0) as avg_price
+		FROM spare_parts 
+		WHERE category IS NOT NULL AND category != '' AND is_active = true
+		GROUP BY category
+		ORDER BY spare_part_count DESC
+	`
+
+	var stats []models.CategoryStats
+	err := r.db.Select(&stats, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get category stats: %w", err)
+	}
+
+	return stats, nil
 }

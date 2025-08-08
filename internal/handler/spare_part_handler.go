@@ -356,13 +356,27 @@ func (h *SparePartHandler) BulkUpdateStock(c *gin.Context) {
 
 // GetCategories handles GET /api/spare-parts/categories
 func (h *SparePartHandler) GetCategories(c *gin.Context) {
-	categories, err := h.sparePartService.GetCategories()
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
+	search := c.Query("search")
+
+	// Use the new GetCategoriesWithPagination method that reads from spare_part_categories table
+	categories, total, err := h.sparePartService.GetCategoriesWithPagination(page, limit, search)
 	if err != nil {
 		utils.SendError(c, http.StatusInternalServerError, "Failed to get categories", err.Error())
 		return
 	}
 
+	// Calculate pagination info
+	totalPages := (int(total) + limit - 1) / limit
+
 	utils.SendSuccess(c, "Categories retrieved successfully", gin.H{
 		"categories": categories,
+		"pagination": gin.H{
+			"current_page": page,
+			"per_page":     limit,
+			"total":        total,
+			"total_pages":  totalPages,
+		},
 	})
 }

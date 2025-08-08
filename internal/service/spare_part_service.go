@@ -21,6 +21,12 @@ type SparePartService interface {
 	CheckStockAvailability(id int, requestedQuantity int) (bool, error)
 	BulkUpdateStock(updates []models.SparePartStockUpdate) error
 	GetCategories() ([]string, error)
+	// Category management methods
+	GetCategoriesWithPagination(page, limit int, search string) ([]models.CategoryInfo, int64, error)
+	CreateCategory(name, description string) error
+	UpdateCategory(id int, name, description string) error
+	DeleteCategory(id int) error
+	GetCategoryStats() ([]models.CategoryStats, error)
 }
 
 type sparePartService struct {
@@ -295,4 +301,73 @@ func (s *sparePartService) GetCategories() ([]string, error) {
 	}
 
 	return categories, nil
+}
+
+// Category management implementations
+
+func (s *sparePartService) GetCategoriesWithPagination(page, limit int, search string) ([]models.CategoryInfo, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+
+	categories, total, err := s.sparePartRepo.GetCategoriesWithPagination(page, limit, search)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get categories: %w", err)
+	}
+
+	return categories, total, nil
+}
+
+func (s *sparePartService) CreateCategory(name, description string) error {
+	if strings.TrimSpace(name) == "" {
+		return fmt.Errorf("category name cannot be empty")
+	}
+
+	err := s.sparePartRepo.CreateCategory(strings.TrimSpace(name), strings.TrimSpace(description))
+	if err != nil {
+		return fmt.Errorf("failed to create category: %w", err)
+	}
+
+	return nil
+}
+
+func (s *sparePartService) UpdateCategory(id int, name, description string) error {
+	if id <= 0 {
+		return fmt.Errorf("invalid category ID")
+	}
+	if strings.TrimSpace(name) == "" {
+		return fmt.Errorf("category name cannot be empty")
+	}
+
+	err := s.sparePartRepo.UpdateCategory(id, strings.TrimSpace(name), strings.TrimSpace(description))
+	if err != nil {
+		return fmt.Errorf("failed to update category: %w", err)
+	}
+
+	return nil
+}
+
+func (s *sparePartService) DeleteCategory(id int) error {
+	if id <= 0 {
+		return fmt.Errorf("invalid category ID")
+	}
+
+	err := s.sparePartRepo.DeleteCategory(id)
+	if err != nil {
+		return fmt.Errorf("failed to delete category: %w", err)
+	}
+
+	return nil
+}
+
+func (s *sparePartService) GetCategoryStats() ([]models.CategoryStats, error) {
+	stats, err := s.sparePartRepo.GetCategoryStats()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get category stats: %w", err)
+	}
+
+	return stats, nil
 }

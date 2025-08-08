@@ -188,11 +188,19 @@ class SparePartService {
   }) async {
     try {
       final response = await _apiClient.get(
-        ApiEndpoints.sparePartCategories,
+        ApiEndpoints.categoriesAll,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-      final data = response.data['data']['categories'] as List;
-      return data.map((category) => category.toString()).toList();
+
+      // Handle the response format from /api/categories/all
+      if (response.data['success'] == true &&
+          response.data['data'] != null &&
+          response.data['data']['categories'] != null) {
+        final data = response.data['data']['categories'] as List;
+        return data.map((category) => category.toString()).toList();
+      }
+
+      return [];
     } catch (e) {
       throw Exception('Failed to get categories: $e');
     }

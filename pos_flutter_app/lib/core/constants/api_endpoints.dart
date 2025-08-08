@@ -97,6 +97,12 @@ class ApiEndpoints {
   static const String mechanicDashboard = '/api/dashboard/mechanic';
   static const String dailyClosing = '/api/dashboard/daily-closing';
 
+  // Categories endpoints
+  static const String categories = '/api/categories';
+  static const String categoriesAll = '/api/categories/all';
+  static const String categoryStats = '/api/categories/stats';
+  static String categoryById(int id) => '/api/categories/$id';
+
   // Health check
   static const String health = '/health';
 }

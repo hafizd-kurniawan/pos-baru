@@ -13,6 +13,7 @@ import '../../features/repairs/presentation/pages/repair_detail_page.dart';
 import '../../features/sales/presentation/pages/point_of_sales_page.dart';
 // Spare part category pages will be imported when needed
 import '../../features/spare_parts/presentation/pages/add_spare_part_page.dart';
+import '../../features/spare_parts/presentation/pages/categories_management_page.dart';
 import '../../features/spare_parts/presentation/pages/edit_spare_part_page.dart';
 import '../../features/spare_parts/presentation/pages/spare_part_detail_page.dart';
 import '../../features/spare_parts/presentation/pages/spare_parts_page.dart';
@@ -178,28 +179,11 @@ class AppRoutes {
               ),
             ],
           ),
-          // Spare Part Categories routes will be added later
-          /*
+          // Spare Part Categories route
           GoRoute(
             path: sparePartCategories,
-            builder: (context, state) => const SparePartCategoriesPage(),
-            routes: [
-              GoRoute(
-                path: 'add',
-                builder: (context, state) => const AddSparePartCategoryPage(),
-              ),
-              GoRoute(
-                path: ':id/edit',
-                builder: (context, state) {
-                  final id = int.parse(state.pathParameters['id']!);
-                  return EditSparePartCategoryPage(
-                    categoryId: id,
-                  );
-                },
-              ),
-            ],
+            builder: (context, state) => const CategoriesManagementPage(),
           ),
-          */
           GoRoute(
             path: repairs,
             builder: (context, state) => const NewRepairsPage(),
